@@ -1,0 +1,4 @@
+machine_id,timestamp,state,override,homing,homed,technology_name,technology_index,technology_dataset,material,thickness,current,gas_type,program_state,arc,arc_ignite,arc_error,marking,drilling,drilling_depth,scrapcut,din_filename,error_code,error_text,error_parameter,error_level,availability,performance,quality,oee
+ByStar1,2025-10-06T15:41:39.591252,Running,100,True,True,Laser,1,DS_027,Stainless,3.5,150,Air,Running,True,True,False,False,False,2.4,False,job4911.din,0,,,0,85.5,91.4,100.0,78.2
+ByStar2,2025-10-06T15:41:39.591815,Running,95,True,True,Laser,2,DS_017,Aluminum,5.0,180,Oxygen,Running,True,True,False,False,False,3.5,True,job1153.din,0,,,0,88.2,93.1,99.8,82.1
+ByStar3,2025-10-06T15:41:39.592464,Offline,0,False,False,Laser,1,DS_030,Stainless,2.0,120,Air,Stopped,False,False,False,True,True,5.6,False,job3171.din,0,,,0,52.3,87.6,100.0,45.8

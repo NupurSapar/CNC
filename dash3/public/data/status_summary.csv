@@ -1,0 +1,22 @@
+machine_id,status,duration
+ByStar1,Work,10h 16m
+ByStar1,Error,5h 24m
+ByStar1,Wait,5h 58m
+ByStar1,Idle,1h 31m
+ByStar1,Stop,0h 50m
+ByStar1,Offline,0h 0m
+ByStar1,Overall,23h 59m
+ByStar2,Work,13h 30m
+ByStar2,Error,0h 0m
+ByStar2,Wait,2h 14m
+ByStar2,Idle,4h 26m
+ByStar2,Stop,3h 48m
+ByStar2,Offline,0h 0m
+ByStar2,Overall,24h 0m
+ByStar3,Work,5h 55m
+ByStar3,Error,1h 28m
+ByStar3,Wait,3h 16m
+ByStar3,Idle,6h 56m
+ByStar3,Stop,1h 36m
+ByStar3,Offline,4h 46m
+ByStar3,Overall,23h 59m

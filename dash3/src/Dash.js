@@ -1,17 +1,19 @@
+// src/Dash.js
 import React, { useState, useEffect } from 'react';
 import logoImage from './elliot.png';
 import cncImage from './cnc.png';
+import dataService from './services/DataService.js';
 
 import { 
   Factory, BarChart2, Scissors, Repeat, Wrench, Settings, LogOut, Bell, Search, Download, Sparkles 
 } from 'lucide-react';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
 const timelineHours = 24;
 
-// Styles
+// Styles (same as before)
 const styles = {
-    
   container: {
     display: 'flex',
     height: '100vh',
@@ -64,7 +66,6 @@ const styles = {
     color: active ? 'white' : '#333',
     background: active ? '#FF6600B3' : 'transparent'
   }),
-  
   mainContent: {
     flex: 1,
     display: 'flex',
@@ -178,10 +179,26 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#999'
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '200px',
+    fontSize: '18px',
+    color: '#666'
+  },
+  errorContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '200px',
+    fontSize: '18px',
+    color: '#ff4d4f'
   }
 };
 
-// Gauge Chart Component (3/4 circular + tick labels)
+// Gauge Chart Component (same as before but now uses CSV data)
 const GaugeChart = ({ current, previous, title, color }) => {
   const data = [
     { value: current, fill: color },
@@ -193,33 +210,30 @@ const GaugeChart = ({ current, previous, title, color }) => {
     { value: 100 - previous, fill: '#EEEEEE' }
   ];
 
-  // Function to position tick labels along outer rim
   const renderTicks = () => {
-  // Manual positions for each tick (x, y)
-  const tickPositions = [
-    { value: 0,   x: 18,  y: 180 },
-    { value: 20,  x: 22,  y: 100 },
-    { value: 40,  x: 80, y: 40 },
-    { value: 60,  x: 190, y: 40 },
-    { value: 80,  x: 245, y: 100 },
-    { value: 100, x: 252, y: 180 }
-  ];
+    const tickPositions = [
+      { value: 0,   x: 18,  y: 180 },
+      { value: 20,  x: 22,  y: 100 },
+      { value: 40,  x: 80, y: 40 },
+      { value: 60,  x: 190, y: 40 },
+      { value: 80,  x: 245, y: 100 },
+      { value: 100, x: 252, y: 180 }
+    ];
 
-  return tickPositions.map(tick => (
-    <text
-      key={tick.value}
-      x={tick.x}
-      y={tick.y}
-      textAnchor="middle"
-      alignmentBaseline="middle"
-      fontSize="8"
-      fill="#666"
-    >
-      {tick.value}
-    </text>
-  ));
-};
-
+    return tickPositions.map(tick => (
+      <text
+        key={tick.value}
+        x={tick.x}
+        y={tick.y}
+        textAnchor="middle"
+        alignmentBaseline="middle"
+        fontSize="8"
+        fill="#666"
+      >
+        {tick.value}
+      </text>
+    ));
+  };
 
   return (
     <div style={styles.card}>
@@ -227,7 +241,6 @@ const GaugeChart = ({ current, previous, title, color }) => {
       <div style={{ position: 'relative', width: '100%', height: '250px' }}>
         <ResponsiveContainer>
           <PieChart>
-            {/* Outer ring (previous) */}
             <Pie
               data={previousData}
               cx="50%"
@@ -238,7 +251,6 @@ const GaugeChart = ({ current, previous, title, color }) => {
               outerRadius={90}
               dataKey="value"
             />
-            {/* Inner ring (current) */}
             <Pie
               data={data}
               cx="50%"
@@ -249,12 +261,10 @@ const GaugeChart = ({ current, previous, title, color }) => {
               outerRadius={115}
               dataKey="value"
             />
-            {/* Tick labels */}
             {renderTicks()}
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Text values inside gauge */}
         <div style={{
           position: 'absolute',
           top: '55%',
@@ -272,9 +282,8 @@ const GaugeChart = ({ current, previous, title, color }) => {
   );
 };
 
-
-// Machine Gantt Chart Component
-const MachineGanttChart = ({ selectedMachine, onMachineChange }) => {
+// Machine Gantt Chart Component (now uses CSV data)
+const MachineGanttChart = ({ selectedMachine, onMachineChange, timelineData, statusSummary, machines }) => {
   const statusColors = {
     Work: '#77c845ff',
     Error: '#C08CE0',
@@ -284,566 +293,343 @@ const MachineGanttChart = ({ selectedMachine, onMachineChange }) => {
     Offline: '#F47474'
   };
 
-  const machines = ['ByStar1', 'ByStar2', 'ByStar3'];
-  
-  const generateTimeBlocks = () => {
-    const blocks = [];
-    const statuses = ['Work', 'Error', 'Wait', 'Idle', 'Offline'];
-    let currentTime = 0;
-    
-    while (currentTime < 12) {
-      const duration = Math.random() * 1.5 + 0.3;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      blocks.push({
-        start: currentTime,
-        duration: Math.min(duration, 12 - currentTime),
-        status
-      });
-      currentTime += duration;
-    }
-    return blocks;
-  };
+  if (!timelineData || !statusSummary || !machines) {
+    return (
+      <div style={styles.card}>
+        <div style={styles.loadingContainer}>Loading timeline data...</div>
+      </div>
+    );
+  }
 
-  const [machineData, ] = useState({
- ByStar1: {
-  overview: [
-    { start: 0, duration: 1.5, status: 'Work' },
-    { start: 1.5, duration: 0.4, status: 'Wait' },
-    { start: 1.9, duration: 1.3, status: 'Work' },
-    { start: 3.1, duration: 0.5, status: 'Error' },
-    { start: 3.6, duration: 0.3, status: 'Work' },
-    { start: 3.9, duration: 0.3, status: 'Idle' },
-    { start: 4.2, duration: 0.5, status: 'Work' },
-    { start: 4.7, duration: 0.3, status: 'Idle' },
-    { start: 5, duration: 0.3, status: 'Work' },
-    { start: 5.3, duration: 0.2, status: 'Idle' },
-    { start: 5.5, duration: 1, status: 'Work' },
-    { start: 6.5, duration: 0.1, status: 'Offline' },
-    { start: 6.6, duration: 1, status: 'Work' },
-    { start: 7.6, duration: 0.6, status: 'Wait' },
-    { start: 8.2, duration: 0.4, status: 'Idle' },
-    { start: 8.6, duration: 0.7, status: 'Error' },
-    { start: 9.3, duration: 1, status: 'Work' },
-    { start: 10.3, duration: 0.2, status: 'Wait' },
-    { start: 10.5, duration: 0.2, status: 'Error' },
-    { start: 10.7, duration: 1.4, status: 'Work' },
-    { start: 12.1, duration: 2, status: 'Idle' },
-    { start: 14.1, duration: 3, status: 'Work' },
-    { start: 17.1, duration: 1, status: 'Wait' },
-    { start: 18.1, duration: 0.5, status: 'Error' },
-    { start: 18.6, duration: 2, status: 'Work' },
-    { start: 20.6, duration: 0.4, status: 'Idle' },
-    { start: 21, duration: 1.5, status: 'Work' },
-    { start: 22.5, duration: 0.5, status: 'Offline' },
-    { start: 23, duration: 1, status: 'Idle' }
-  ],
-  Work: [
-    { start: 0, duration: 1.5 },
-    { start: 1.9, duration: 1.3 },
-    { start: 3.6, duration: 0.3 },
-    { start: 4.2, duration: 0.5 },
-    { start: 5, duration: 0.3 },
-    { start: 5.5, duration: 1 },
-    { start: 6.6, duration: 1 },
-    { start: 9.3, duration: 1 },
-    { start: 10.7, duration: 1.4 },
-    { start: 14.1, duration: 3 },
-    { start: 18.6, duration: 2 },
-    { start: 21, duration: 1.5 }
-  ],
-  Error: [
-    { start: 3.1, duration: 0.5 },
-    { start: 8.6, duration: 0.7 },
-    { start: 10.5, duration: 0.2 },
-    { start: 18.1, duration: 0.5 }
-  ],
-  Wait: [
-    { start: 1.5, duration: 0.4 },
-    { start: 7.6, duration: 0.6 },
-    { start: 10.3, duration: 0.2 },
-    { start: 17.1, duration: 1 }
-  ],
-  Idle: [
-    { start: 3.9, duration: 0.3 },
-    { start: 4.7, duration: 0.3 },
-    { start: 5.3, duration: 0.2 },
-    { start: 8.2, duration: 0.4 },
-    { start: 12.1, duration: 2 },
-    { start: 20.6, duration: 0.4 },
-    { start: 23, duration: 1 }
-  ],
-  Offline: [
-    { start: 6.5, duration: 0.1 },
-    { start: 22.5, duration: 0.5 }
-  ],
-  Stop: []
-},
-  ByStar2: {
-  overview: [
-    { start: 0, duration: 1.2, status: 'Work' },
-    { start: 1.2, duration: 0.6, status: 'Wait' },
-    { start: 1.8, duration: 1.5, status: 'Work' },
-    { start: 3.3, duration: 0.5, status: 'Error' },
-    { start: 3.8, duration: 0.4, status: 'Idle' },
-    { start: 4.2, duration: 1, status: 'Work' },
-    { start: 5.2, duration: 0.3, status: 'Offline' },
-    { start: 5.5, duration: 1.4, status: 'Work' },
-    { start: 6.9, duration: 0.5, status: 'Wait' },
-    { start: 7.4, duration: 0.6, status: 'Error' },
-    { start: 8.0, duration: 1.1, status: 'Work' },
-    { start: 9.1, duration: 0.3, status: 'Idle' },
-    { start: 9.4, duration: 0.3, status: 'Work' },
-    { start: 9.7, duration: 0.3, status: 'Idle' },
-    { start: 10.0, duration: 1.0, status: 'Work' },
-    { start: 11.0, duration: 1.0, status: 'Wait' },
-    { start: 12.0, duration: 2.5, status: 'Work' },
-    { start: 14.5, duration: 0.8, status: 'Idle' },
-    { start: 15.3, duration: 2, status: 'Work' },
-    { start: 17.3, duration: 1.0, status: 'Wait' },
-    { start: 18.3, duration: 0.7, status: 'Error' },
-    { start: 19.0, duration: 3, status: 'Work' },
-    { start: 22.0, duration: 1, status: 'Idle' },
-    { start: 23.0, duration: 1, status: 'Offline' }
-  ],
-  Work: [
-    { start: 0, duration: 1.2 },
-    { start: 1.8, duration: 1.5 },
-    { start: 4.2, duration: 1 },
-    { start: 5.5, duration: 1.4 },
-    { start: 8.0, duration: 1.1 },
-    { start: 9.4, duration: 0.3 },
-    { start: 10.0, duration: 1.0 },
-    { start: 12.0, duration: 2.5 },
-    { start: 15.3, duration: 2 },
-    { start: 19.0, duration: 3 }
-  ],
-  Error: [
-    { start: 3.3, duration: 0.5 },
-    { start: 7.4, duration: 0.6 },
-    { start: 18.3, duration: 0.7 }
-  ],
-  Wait: [
-    { start: 1.2, duration: 0.6 },
-    { start: 6.9, duration: 0.5 },
-    { start: 11.0, duration: 1.0 },
-    { start: 17.3, duration: 1.0 }
-  ],
-  Idle: [
-    { start: 3.8, duration: 0.4 },
-    { start: 9.1, duration: 0.3 },
-    { start: 9.7, duration: 0.3 },
-    { start: 14.5, duration: 0.8 },
-    { start: 22.0, duration: 1 }
-  ],
-  Offline: [
-    { start: 5.2, duration: 0.3 },
-    { start: 23.0, duration: 1 }
-  ],
-  Stop: []
-},
-
- ByStar3: {
-  overview: [
-    { start: 0, duration: 0.8, status: 'Offline' },
-    { start: 0.8, duration: 1.6, status: 'Work' },
-    { start: 2.4, duration: 0.4, status: 'Wait' },
-    { start: 2.8, duration: 0.9, status: 'Work' },
-    { start: 3.7, duration: 0.6, status: 'Error' },
-    { start: 4.3, duration: 0.5, status: 'Idle' },
-    { start: 4.8, duration: 1.5, status: 'Work' },
-    { start: 6.3, duration: 0.2, status: 'Offline' },
-    { start: 6.5, duration: 1.5, status: 'Work' },
-    { start: 8.0, duration: 0.4, status: 'Wait' },
-    { start: 8.4, duration: 0.7, status: 'Error' },
-    { start: 9.1, duration: 0.3, status: 'Idle' },
-    { start: 9.4, duration: 1.2, status: 'Work' },
-    { start: 10.6, duration: 0.4, status: 'Idle' },
-    { start: 11.0, duration: 1.0, status: 'Work' },
-    { start: 12.0, duration: 2, status: 'Work' },
-    { start: 14.0, duration: 1, status: 'Wait' },
-    { start: 15.0, duration: 1.5, status: 'Work' },
-    { start: 16.5, duration: 0.5, status: 'Error' },
-    { start: 17.0, duration: 2, status: 'Work' },
-    { start: 19.0, duration: 0.6, status: 'Idle' },
-    { start: 19.6, duration: 2.4, status: 'Work' },
-    { start: 22.0, duration: 1, status: 'Wait' },
-    { start: 23.0, duration: 1, status: 'Offline' }
-  ],
-  Work: [
-    { start: 0.8, duration: 1.6 },
-    { start: 2.8, duration: 0.9 },
-    { start: 4.8, duration: 1.5 },
-    { start: 6.5, duration: 1.5 },
-    { start: 9.4, duration: 1.2 },
-    { start: 11.0, duration: 1.0 },
-    { start: 12.0, duration: 2 },
-    { start: 15.0, duration: 1.5 },
-    { start: 17.0, duration: 2 },
-    { start: 19.6, duration: 2.4 }
-  ],
-  Error: [
-    { start: 3.7, duration: 0.6 },
-    { start: 8.4, duration: 0.7 },
-    { start: 16.5, duration: 0.5 }
-  ],
-  Wait: [
-    { start: 2.4, duration: 0.4 },
-    { start: 8.0, duration: 0.4 },
-    { start: 14.0, duration: 1 },
-    { start: 22.0, duration: 1 }
-  ],
-  Idle: [
-    { start: 4.3, duration: 0.5 },
-    { start: 9.1, duration: 0.3 },
-    { start: 10.6, duration: 0.4 },
-    { start: 19.0, duration: 0.6 }
-  ],
-  Offline: [
-    { start: 0, duration: 0.8 },
-    { start: 6.3, duration: 0.2 },
-    { start: 23.0, duration: 1 }
-  ],
-  Stop: []
-}
-
-});
-
-
-  const durations = {
-    ByStar1: '18h 19m',
-    ByStar2: '18h 19m',
-    ByStar3: '3h 50m'
-  };
-
-  const statusDurations = {
-    Work: '18h 19m',
-    Error: '31m 20s',
-    Wait: '3h 50m',
-    Idle: '1h 42m',
-    Stop: '0s',
-    Offline: '40s'
-  };
-const statusDurationsData = {
-  ByStar1: { overall: '24h 0m', Work: '15h 24m', Error: '1h 42m', Wait: '2h 0m', Idle: '4h 12m', Offline: '0h 33m', Stop: '0h 0m' },
-  ByStar2: { overall: '24h 0m', Work: '15h 6m', Error: '1h 36m', Wait: '2h 48m', Idle: '3h 24m', Offline: '1h 9m', Stop: '0h 0m' },
-  ByStar3: { overall: '24h 0m', Work: '16h 18m', Error: '1h 40m', Wait: '2h 36m', Idle: '1h 40m', Offline: '1h 51m', Stop: '0h 0m' },
-};
-
-
+  const activeMachines = machines.filter(m => m.status === 'Active');
+  const allMachines = machines.map(m => m.machine_id);
 
   return (
     <div style={styles.card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={styles.cardTitle}>Machine Status for Current Data</div>
         <button style={styles.btn('outline')}>
-    <Search size={16} /> Filter
-  </button>
+          <Search size={16} /> Filter
+        </button>
       </div>
       
       <div style={{ display: 'flex', gap: '16px' }}>
         <div style={{ minWidth: '120px' }}>
           <div style={{ fontWeight: '600', marginTop: '-1px', marginBottom: '8px', fontSize: '14px' }}>Device</div>
-          {machines.map(machine => (
-            <div
-              key={machine}
-              onClick={() => onMachineChange(machine)}
-              style={{
-                padding: '12px',
-                marginBottom: '8px',
-                background: machine === selectedMachine ? '#FF6600B3' : '#f5f5f5',
-                color: machine === selectedMachine ? 'white' : '#333',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ fontWeight: '600', fontSize: '14px' }}>{machine}</div>
-              <div style={{ fontSize: '11px', color: machine === selectedMachine ? 'white' : '#4caf50' }}>
-                Last status: Work
+          {allMachines.map(machineId => {
+            const machine = machines.find(m => m.machine_id === machineId);
+            return (
+              <div
+                key={machineId}
+                onClick={() => onMachineChange(machineId)}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  background: machineId === selectedMachine ? '#FF6600B3' : '#f5f5f5',
+                  color: machineId === selectedMachine ? 'white' : '#333',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontWeight: '600', fontSize: '14px' }}>{machineId}</div>
+                <div style={{ 
+                  fontSize: '11px', 
+                  color: machineId === selectedMachine ? 'white' : 
+                         (machine?.status === 'Active' ? '#4caf50' : '#ff4d4f')
+                }}>
+                  Status: {machine?.status || 'Unknown'}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/*<div style={{ flex: 1 }}>*/}
         <div style={{ flex: 1, overflowX: 'hidden' }}>
-  <div
-    style={{
-      width: '180%', // adjust width as needed to fit 24h timeline
-      minWidth: '800px', // ensures scrollbar shows
-      paddingBottom: '8px',
-    }}
-  ></div>
           <div style={{ fontWeight: '600', marginTop: '-10px', marginBottom: '8px', fontSize: '14px' }}>Gantt</div>
           <div style={{ display: 'flex' }}>
-  {/* Left labels */}
-  <div style={{ width: '80px', flexShrink: 0 }}>
-    <div style={{ fontSize: '12px', color: '#777777ff', marginTop: '8px', marginBottom: '14px' }}>Overview</div>
-    {Object.keys(statusColors).map(status => (
-      <div key={status} style={{ display: 'flex', alignItems: 'center', height: '30px', marginBottom: '10px' }}>
-        <div style={{
-          width: '12px',
-          height: '12px',
-          borderRadius: '50%',
-          background: statusColors[status],
-          marginRight: '8px'
-        }} />
-        <div style={{ fontSize: '12px' }}>{status}</div>
-      </div>
-    ))}
-  </div>
+            <div style={{ width: '80px', flexShrink: 0 }}>
+              <div style={{ fontSize: '12px', color: '#777777ff', marginTop: '8px', marginBottom: '14px' }}>Overview</div>
+              {Object.keys(statusColors).map(status => (
+                <div key={status} style={{ display: 'flex', alignItems: 'center', height: '30px', marginBottom: '10px' }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    background: statusColors[status],
+                    marginRight: '8px'
+                  }} />
+                  <div style={{ fontSize: '12px' }}>{status}</div>
+                </div>
+              ))}
+            </div>
 
-  {/* Scrollable bars */}
-  <div style={{ flex: 1, overflowX: 'auto'}}>
-    <div style={{ width: '1560px' }}>
-        
-      {/* Overview row */}
-      <div style={{ position: 'relative', height: '30px', marginBottom: '8px', border: '1px solid #e0e0e0' }}>
-        {machineData[selectedMachine].overview.map((block, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${(block.start / timelineHours) * 90}%`,
-              width: `${(block.duration / timelineHours) * 90}%`,
-              height: '100%',
-              background: statusColors[block.status],
-              borderRight: '1px solid white'
-            }}
-          />
-        ))}
-      </div>
+            <div style={{ flex: 1, overflowX: 'auto'}}>
+              <div style={{ width: '1560px' }}>
+                {/* Overview row */}
+                <div style={{ position: 'relative', height: '30px', marginBottom: '8px', border: '1px solid #e0e0e0' }}>
+                  {timelineData.overview?.map((block, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        position: 'absolute',
+                        left: `${(block.start / timelineHours) * 90}%`,
+                        width: `${(block.duration / timelineHours) * 90}%`,
+                        height: '100%',
+                        background: statusColors[block.status],
+                        borderRight: '1px solid white'
+                      }}
+                    />
+                  ))}
+                </div>
 
-      {/* Status rows */}
-      {Object.keys(statusColors).map(status => (
-        <div key={status} style={{ position: 'relative', height: '30px', marginBottom: '8px', border: '1px solid #e0e0e0' }}>
-          {machineData[selectedMachine][status]?.map((block, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${(block.start /timelineHours) * 90}%`,
-                width: `${(block.duration / timelineHours) * 90}%`,
-                height: '100%',
-                background: statusColors[status],
-                borderRight: '1px solid white'
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-    {/* Time axis */}
-          <div style={{ 
-  display: 'flex', 
-  justifyContent: 'space-between', 
-  marginTop: '8px', 
-  marginBottom: '8px', 
-  paddingRight: '96px',
-  width: '180%',       // match Gantt chart width
-  minWidth: '1200px',  // optional, same as chart
-}}>
-            {[0, 4, 8, 12, 16, 20, 24].map(time => (
-              <div key={time} style={{ fontSize: '11px', color: '#999'}}>{time}:00</div>
-            ))}
+                {/* Status rows */}
+                {Object.keys(statusColors).map(status => (
+                  <div key={status} style={{ position: 'relative', height: '30px', marginBottom: '8px', border: '1px solid #e0e0e0' }}>
+                    {timelineData[status]?.map((block, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          position: 'absolute',
+                          left: `${(block.start / timelineHours) * 90}%`,
+                          width: `${(block.duration / timelineHours) * 90}%`,
+                          height: '100%',
+                          background: statusColors[status],
+                          borderRight: '1px solid white'
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Time axis */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                marginTop: '8px', 
+                marginBottom: '8px', 
+                paddingRight: '96px',
+                width: '180%',
+                minWidth: '1200px',
+              }}>
+                {[0, 4, 8, 12, 16, 20, 24].map(time => (
+                  <div key={time} style={{ fontSize: '11px', color: '#999'}}>{time}:00</div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right durations */}
+            <div style={{ width: '80px', textAlign: 'right', marginLeft: '16px', flexShrink: 0 }}>
+              <div style={{ marginTop: '8px', marginBottom:'24px', fontSize: '12px' }}>
+                {statusSummary.Overall || '24h 0m'}
+              </div>
+              {Object.keys(statusColors).map(status => (
+                <div key={status} style={{ height: '30px', marginBottom: '10px', fontSize: '12px' }}>
+                  {statusSummary[status] || '0h 0m'}
+                </div>
+              ))}
+            </div>
           </div>
-  </div>
-
-  {/* Right durations */}
-  <div style={{ width: '80px', textAlign: 'right', marginLeft: '16px', flexShrink: 0 }}>
-  <div style={{ marginTop: '8px',marginBottom:'24px', fontSize: '12px' }}>
-    {statusDurationsData[selectedMachine].overall}
-  </div>
-  {Object.keys(statusColors).map(status => (
-    <div key={status} style={{ height: '30px', marginBottom: '10px', fontSize: '12px' }}>
-      {statusDurationsData[selectedMachine][status]}
-    </div>
-  ))}
-</div>
-  
-</div>
         </div>
       </div>
     </div>
   );
 };
 
-{/* Scrollbar style */}
-<style>
-  {`
-    ::-webkit-scrollbar {
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #bbb;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #888;
-    }
-  `}
-</style>
 // Main App Component
 const Dash = () => {
   const [page, setPage] = useState('dashboard');
-  const [selectedMachine, setSelectedMachine] = useState('ByStar2');
+  const [selectedMachine, setSelectedMachine] = useState('ByStar1');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Data state
+  const [machines, setMachines] = useState([]);
   const [oeeData, setOeeData] = useState([]);
+  const [currentOEE, setCurrentOEE] = useState(null);
+  const [timelineData, setTimelineData] = useState(null);
+  const [statusSummary, setStatusSummary] = useState(null);
 
-useEffect(() => {
-  // Hardcoded OEE data for each month
-  const data = [
-    { month: 'Jan', OEEE: 320, Availability: 180, Performance: 170, Quality: 120 },
-    { month: 'Feb', OEEE: 310, Availability: 190, Performance: 160, Quality: 130 },
-    { month: 'Mar', OEEE: 330, Availability: 200, Performance: 150, Quality: 110 },
-    { month: 'Apr', OEEE: 300, Availability: 185, Performance: 155, Quality: 115 },
-    { month: 'May', OEEE: 340, Availability: 195, Performance: 165, Quality: 125 },
-    { month: 'Jun', OEEE: 315, Availability: 180, Performance: 170, Quality: 120 },
-    { month: 'Jul', OEEE: 325, Availability: 190, Performance: 160, Quality: 130 },
-    { month: 'Aug', OEEE: 310, Availability: 200, Performance: 150, Quality: 110 },
-    { month: 'Sept', OEEE: 335, Availability: 185, Performance: 155, Quality: 115 },
-    { month: 'Oct', OEEE: 320, Availability: 195, Performance: 165, Quality: 125 },
-    { month: 'Nov', OEEE: 330, Availability: 180, Performance: 170, Quality: 120 },
-    { month: 'Dec', OEEE: 340, Availability: 190, Performance: 160, Quality: 130 }
-  ];
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        await dataService.loadAllData();
+        
+        // Load machines data
+        const machinesData = dataService.getMachines();
+        setMachines(machinesData);
+        
+        // Load OEE metrics for chart
+        const oeeMetrics = dataService.getOEEMetrics();
+        setOeeData(oeeMetrics);
+        
+        // Set default selected machine
+        if (machinesData.length > 0) {
+          const defaultMachine = machinesData[0].machine_id;
+          setSelectedMachine(defaultMachine);
+        }
+        
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Failed to load data. Please check console for details.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  setOeeData(data);
-}, []);
+    loadData();
+  }, []);
 
+  // Load machine-specific data when selected machine changes
+  useEffect(() => {
+    if (selectedMachine && dataService.isLoaded) {
+      try {
+        const oeeData = dataService.getCurrentOEE(selectedMachine);
+        setCurrentOEE(oeeData);
+        
+        const timeline = dataService.getMachineTimeline(selectedMachine);
+        setTimelineData(timeline);
+        
+        const summary = dataService.getStatusSummary(selectedMachine);
+        setStatusSummary(summary);
+      } catch (err) {
+        console.error('Error loading machine data:', err);
+      }
+    }
+  }, [selectedMachine]);
+
+  if (isLoading) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.loadingContainer}>
+          Loading dashboard data...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorContainer}>
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
+      {/* Sidebar */}
       <div style={styles.sidebar}>
-  <div style={styles.logo}>
-    <img 
-      src={logoImage} 
-      alt="Elliot Systems Logo" 
-      style={{ 
-        width: '50px', 
-        height: '50px', 
-        borderRadius: '0%', 
-        objectFit: 'cover', 
-        marginRight: '8px' 
-      }} 
-    />
-    <div style={styles.logoText}>Elliot Systems</div>
-  </div>
+        <div style={styles.logo}>
+          <img 
+            src={logoImage} 
+            alt="Elliot Systems Logo" 
+            style={{ 
+              width: '50px', 
+              height: '50px', 
+              borderRadius: '0%', 
+              objectFit: 'cover', 
+              marginRight: '8px' 
+            }} 
+          />
+          <div style={styles.logoText}>Elliot Systems</div>
+        </div>
 
-  {/* Main Menu */}
-  <div style={styles.navMenu}>
-    {/* Machines */}
-    <div 
-      style={styles.navItem(page === 'machines')} 
-      onClick={() => setPage('machines')}
-    >
-      <Factory size={20} />
-      <span>Machines</span>
-    </div>
+        <div style={styles.navMenu}>
+          <div 
+            style={styles.navItem(page === 'machines')} 
+            onClick={() => setPage('machines')}
+          >
+            <Factory size={20} />
+            <span>Machines</span>
+          </div>
 
-    {/* Dashboard */}
-    <div 
-      style={styles.navItem(page === 'dashboard')} 
-      onClick={() => setPage('dashboard')}
-    >
-      <BarChart2 size={20} />
-      <span>Dashboard</span>
-    </div>
+          <div 
+            style={styles.navItem(page === 'dashboard')} 
+            onClick={() => setPage('dashboard')}
+          >
+            <BarChart2 size={20} />
+            <span>Dashboard</span>
+          </div>
 
-    {/* Dashboard Sub-items */}
-{page === 'dashboard' && (
-  <div style={{ marginLeft: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    
-    <div 
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px', 
-        padding: '4px 8px', 
-        borderRadius: '4px',
-        cursor: 'pointer',
-        background: 'transparent', 
-        color: '#FF6600B3',           
-        transition: 'background 0.2s'
-      }}
-    >
-      <Scissors size={16} />
-      <span style={{ display: 'inline-block', minWidth: '40px' }}>Cut</span>
-    </div>
+          {page === 'dashboard' && (
+            <div style={{ marginLeft: '40px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '4px 8px', 
+                borderRadius: '4px',
+                cursor: 'pointer',
+                background: 'transparent', 
+                color: '#FF6600B3',           
+                transition: 'background 0.2s'
+              }}>
+                <Scissors size={16} />
+                <span>Cut</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '4px 8px', 
+                borderRadius: '4px',
+                cursor: 'pointer',
+                background: 'transparent',
+                transition: 'background 0.2s'
+              }}>
+                <Repeat size={16} />
+                <span>Blend</span>
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                padding: '4px 8px', 
+                borderRadius: '4px',
+                cursor: 'pointer',
+                background: 'transparent',
+                transition: 'background 0.2s'
+              }}>
+                <Wrench size={16} />
+                <span>Tubes</span>
+              </div>
+            </div>
+          )}
+        </div>
 
-    <div 
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px', 
-        padding: '4px 8px', 
-        borderRadius: '4px',
-        cursor: 'pointer',
-        background: 'transparent',
-        transition: 'background 0.2s'
-      }}
-    >
-      <Repeat size={16} />
-      <span style={{ display: 'inline-block', minWidth: '40px' }}>Blend</span>
-    </div>
-
-    <div 
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '8px', 
-        padding: '4px 8px', 
-        borderRadius: '4px',
-        cursor: 'pointer',
-        background: 'transparent',
-        transition: 'background 0.2s'
-      }}
-    >
-      <Wrench size={16} />
-      <span style={{ display: 'inline-block', minWidth: '40px' }}>Tubes</span>
-    </div>
-
-  </div>
-)}
-</div>
-
-  {/* Settings / Sign Out */}
-  <div style={styles.navMenu}>
-    <div 
-      style={styles.navItem(false)}
-      onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <Settings size={20} />
-      <span>Settings</span>
-    </div>
-    <div 
-      style={styles.navItem(false)}
-      onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <LogOut size={20} />
-      <span>Sign Out</span>
-    </div>
-  </div>
-</div>
+        <div style={styles.navMenu}>
+          <div style={styles.navItem(false)}>
+            <Settings size={20} />
+            <span>Settings</span>
+          </div>
+          <div style={styles.navItem(false)}>
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div style={styles.mainContent}>
-        {/* Top Bar */}
         <div style={styles.topBar}>
-  <div style={styles.pageTitle}>
-    {page === 'dashboard' ? 'Dashboard' : 'Machines'}
-  </div>
-  <div style={styles.topBarRight}>
-    <div style={styles.notificationIcon}>
-      <Bell size={20} />
-      <div style={styles.notificationBadge}>4</div>
-    </div>
-    <div style={styles.userInfo}>
-      <div style={styles.avatar}>N</div>
-      <div>
+          <div style={styles.pageTitle}>
+            {page === 'dashboard' ? 'Dashboard' : 'Machines'}
+          </div>
+          <div style={styles.topBarRight}>
+            <div style={styles.notificationIcon}>
+              <Bell size={20} />
+              <div style={styles.notificationBadge}>4</div>
+            </div>
+            <div style={styles.userInfo}>
+              <div style={styles.avatar}>N</div>
+              <div>
                 <div style={{ fontWeight: '600', fontSize: '14px' }}>Nupur</div>
                 <div style={{ fontSize: '12px', color: '#999' }}>Admin</div>
               </div>
@@ -854,31 +640,55 @@ useEffect(() => {
         {/* Dashboard View */}
         {page === 'dashboard' && (
           <div style={styles.contentArea}>
-            {/* Action Bar */}
             <div style={styles.actionBar}>
-  <button style={styles.btn('outline')}>
-    <Search size={16} /> Filter
-  </button>
-  <button style={styles.btn('primary')}>
-    <Sparkles size={16} /> Generate AI Report
-  </button>
-  <button style={styles.btn('primary')}>
-    <Download size={16} /> Download Report
-  </button>
-</div>
+              <button style={styles.btn('outline')}>
+                <Search size={16} /> Filter
+              </button>
+              <button style={styles.btn('primary')}>
+                <Sparkles size={16} /> Generate AI Report
+              </button>
+              <button style={styles.btn('primary')}>
+                <Download size={16} /> Download Report
+              </button>
+            </div>
 
             {/* Gauge Charts */}
-            <div style={styles.gaugeGrid}>
-              <GaugeChart current={78.2} previous={60.1} title="OEE" color="#FF6600B3" />
-              <GaugeChart current={78.2} previous={60.1} title="Availability" color="#FFEC60" />
-              <GaugeChart current={78.2} previous={60.1} title="Performance" color="#40E377" />
-              <GaugeChart current={78.2} previous={60.1} title="Quality" color="#F47474" />
-            </div>
+            {currentOEE && (
+              <div style={styles.gaugeGrid}>
+                <GaugeChart 
+                  current={currentOEE.current_oee} 
+                  previous={currentOEE.previous_oee} 
+                  title="OEE" 
+                  color="#FF6600B3" 
+                />
+                <GaugeChart 
+                  current={currentOEE.availability} 
+                  previous={currentOEE.previous_oee} 
+                  title="Availability" 
+                  color="#FFEC60" 
+                />
+                <GaugeChart 
+                  current={currentOEE.performance} 
+                  previous={currentOEE.previous_oee} 
+                  title="Performance" 
+                  color="#40E377" 
+                />
+                <GaugeChart 
+                  current={currentOEE.quality} 
+                  previous={currentOEE.previous_oee} 
+                  title="Quality" 
+                  color="#F47474" 
+                />
+              </div>
+            )}
 
             {/* Gantt Chart */}
             <MachineGanttChart 
               selectedMachine={selectedMachine} 
               onMachineChange={setSelectedMachine}
+              timelineData={timelineData}
+              statusSummary={statusSummary}
+              machines={machines}
             />
 
             {/* OEE Metrics Over Time */}
@@ -886,8 +696,8 @@ useEffect(() => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div style={styles.cardTitle}>OEE Metrics Over Time</div>
                 <button style={styles.btn('outline')}>
-    <Search size={16} /> Filter
-  </button>
+                  <Search size={16} /> Filter
+                </button>
               </div>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={oeeData}>
@@ -917,55 +727,68 @@ useEffect(() => {
                   <option>Laser</option>
                   <option>Press</option>
                 </select>
-                <span>○  Active 2</span>
-                <span>○ Inactive 0</span>
-                <span style={{ color: '#FF6600B3' }}>● All 2</span>
+                <span>○ Active {machines.filter(m => m.status === 'Active').length}</span>
+                <span>○ Inactive {machines.filter(m => m.status === 'Inactive').length}</span>
+                <span style={{ color: '#FF6600B3' }}>● All {machines.length}</span>
               </div>
             </div>
 
             <div style={styles.machineGrid}>
-              {[1, 2].map(num => (
-    <div
-      key={num}
-      style={{
-        ...styles.machineCard,
-        width: '360px',          
-        padding: '12px',        
-        fontSize: '12px',       
-      }}
-    >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ color: '#4caf50' }}>● Active</span>
+              {machines.map((machine) => {
+                const realtimeData = dataService.getRealtimeData(machine.machine_id);
+                return (
+                  <div
+                    key={machine.machine_id}
+                    style={{
+                      ...styles.machineCard,
+                      width: '360px',          
+                      padding: '12px',        
+                      fontSize: '12px',       
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <span style={{ 
+                        color: machine.status === 'Active' ? '#4caf50' : '#ff4d4f' 
+                      }}>
+                        ● {machine.status}
+                      </span>
+                    </div>
+                    <div style={styles.machineImage}>
+                      <img src={cncImage} alt="CNC Laser Machine" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '18px' }} />
+                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>
+                      {machine.machine_name}
+                    </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ color: '#666' }}>Override</span>
+                        <span>{machine.override}%</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ color: '#666' }}>TechnologyIndex</span>
+                        <span>{machine.technology_index}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ color: '#666' }}>Thickness</span>
+                        <span>{machine.thickness}mm</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#666' }}>Current</span>
+                        <span>{machine.current}A</span>
+                      </div>
+                    </div>
+                    <button 
+                      style={{ ...styles.btn('primary'), width: '100%', justifyContent: 'center' }}
+                      onClick={() => {
+                        setSelectedMachine(machine.machine_id);
+                        setPage('dashboard');
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
-                  <div style={styles.machineImage}>
-  <img src={cncImage} alt="CNC Laser Machine" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '18px' }} />
-</div>
-                  <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>
-                    CNC Laser Machine {num}
-                  </div>
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ color: '#666' }}>Override</span>
-                      <span>-</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ color: '#666' }}>TechnologyIndex</span>
-                      <span>-</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ color: '#666' }}>Thickness</span>
-                      <span>-</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#666' }}>Current</span>
-                      <span>-</span>
-                    </div>
-                  </div>
-                  <button style={{ ...styles.btn('primary'), width: '100%', justifyContent: 'center' }}>
-                    View
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

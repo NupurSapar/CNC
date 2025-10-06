@@ -1,0 +1,4 @@
+machine_id,machine_name,machine_type,status,current_oee,previous_oee,availability,performance,quality,override,technology_index,thickness,current,location,installation_date,last_maintenance
+ByStar1,CNC Laser Machine 1,CNC Laser,Active,78.2,60.1,85.5,91.4,100.0,100,1,3.5,150,"Floor 1, Bay A",2024-01-15,2024-09-15
+ByStar2,CNC Laser Machine 2,CNC Laser,Active,82.1,65.3,88.2,93.1,99.8,95,2,5.0,180,"Floor 1, Bay B",2024-02-20,2024-09-20
+ByStar3,CNC Laser Machine 3,CNC Laser,Inactive,45.8,72.4,52.3,87.6,100.0,0,1,2.0,120,"Floor 2, Bay C",2024-03-10,2024-08-10
