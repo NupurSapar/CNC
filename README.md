@@ -189,4 +189,4 @@ This dashboard is designed for:
 - **Samihan Narayankeri** - Developer - [@Sammychann](https://github.com/Sammychann)
 ---
 
-**Built with ❤️ for modern manufacturing and Industrial IoT applications**
+
