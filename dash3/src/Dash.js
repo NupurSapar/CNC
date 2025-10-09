@@ -4,7 +4,7 @@ import dataService from './services/DataService.js';
 import Layout from './components/Layout';
 import { Dashboard, Machines } from './components/Pages';
 
-const Dash = () => {
+const Dash = ({ onLogout }) => {  // ← Just added this prop
   // State management
   const [page, setPage] = useState('dashboard');
   const [selectedMachine, setSelectedMachine] = useState('ByStar1');
@@ -134,6 +134,7 @@ const Dash = () => {
       showNotifications={showNotifications}
       onNotificationToggle={() => setShowNotifications(!showNotifications)}
       onNotificationClick={handleNotificationClick}
+      onLogout={onLogout}  
     >
       {page === 'dashboard' && (
         <Dashboard 

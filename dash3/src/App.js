@@ -1,11 +1,28 @@
-import React from "react";
-import Dash from "./Dash.js"; 
-
+// src/App.js
+import React, { useState } from 'react';
+import LoginPage from './LoginPage';
+import Dash from './Dash';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleLogin = (success) => {
+    if (success) {
+      setIsAuthenticated(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
   return (
     <div className="App">
-      <Dash />
+      {isAuthenticated ? (
+        <Dash onLogout={handleLogout} />
+      ) : (
+        <LoginPage onLogin={handleLogin} />
+      )}
     </div>
   );
 }
