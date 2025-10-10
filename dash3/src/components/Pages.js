@@ -3,9 +3,24 @@ import React, { useState } from 'react';
 import { Search, Download, Sparkles } from 'lucide-react';
 import cncImage from '../cnc.png';
 import dataService from '../services/DataService.js';
-import { GaugeChart, MachineGanttChart, OEELineChart } from './Charts';
+import { GaugeChart, MachineGanttChart, OEELineChart, MachineCard, DrillMarkGanttChart } from './Charts';
 
 const pageStyles = {
+  tabBar: {
+    display: 'flex',
+    gap: '16px',
+    marginBottom: '24px',
+    borderBottom: '1px solid #e5e5e5',
+    flexWrap: 'wrap',
+  },
+  tab: (active) => ({
+    padding: '12px 20px',
+    cursor: 'pointer',
+    fontWeight: active ? '600' : '500',
+    color: active ? '#FF6600B3' : '#666',
+    borderBottom: active ? '2px solid #FF6600B3' : '2px solid transparent',
+    transition: 'all 0.3s',
+  }),
   actionBar: {
     display: 'flex',
     gap: '12px',
@@ -40,17 +55,20 @@ const pageStyles = {
   }
 };
 
+
+
 // Dashboard Page Component
 const Dashboard = ({ selectedMachine, onMachineChange, machines, oeeData, timeRange, currentOEE, timelineData, statusSummary }) => {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [aiReportLoading, setAiReportLoading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [selectedTab, setSelectedTab] = useState('real-time');
 
   const handleGenerateAIReport = async () => {
     setAiReportLoading(true);
     setTimeout(() => {
       setAiReportLoading(false);
-      alert(`AI Report generated for ${selectedMachine}:\\n\\n• Current OEE: ${currentOEE?.current_oee}%\\n• Recommendation: Focus on reducing idle time\\n• Next maintenance: Due in 15 days\\n• Efficiency trend: Improving (+2.1% vs last month)`);
+      alert(`AI Report generated for ${selectedMachine}:\n\n• Current OEE: ${currentOEE?.current_oee}%\n• Recommendation: Focus on reducing idle time\n• Next maintenance: Due in 15 days\n• Efficiency trend: Improving (+2.1% vs last month)`);
     }, 2000);
   };
 
@@ -70,50 +88,114 @@ const Dashboard = ({ selectedMachine, onMachineChange, machines, oeeData, timeRa
 
   return (
     <div>
-      {/* Action Bar */}
-      <div style={pageStyles.actionBar}>
-        <button style={pageStyles.btn('outline', false)} onClick={() => console.log('Filter clicked')}>
-          <Search size={16} /> Filter
-        </button>
-        
-        <button style={pageStyles.btn('primary', aiReportLoading)} onClick={handleGenerateAIReport} disabled={aiReportLoading}>
-          <Sparkles size={16} />
-          {aiReportLoading ? 'Generating...' : 'Generate AI Report'}
-          {aiReportLoading && (
-            <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', 
-                         borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          )}
-        </button>
-        
-        <button style={pageStyles.btn('primary', false)} onClick={handleDownloadReport}>
-          <Download size={16} />
-          Download Report
-          {downloadProgress > 0 && downloadProgress < 100 && (
-            <span style={{ marginLeft: '8px' }}>({downloadProgress}%)</span>
-          )}
-        </button>
+      {/* Tab Bar */}
+      <div style={pageStyles.tabBar}>
+        <div style={pageStyles.tab(selectedTab === 'real-time')} onClick={() => setSelectedTab('real-time')}>
+          Real-Time
+        </div>
+        <div style={pageStyles.tab(selectedTab === 'historical')} onClick={() => setSelectedTab('historical')}>
+          Historical
+        </div>
+        <div style={pageStyles.tab(selectedTab === 'error')} onClick={() => setSelectedTab('error')}>
+          Error
+        </div>
       </div>
 
-      {/* Gauge Charts */}
-      {currentOEE && (
-        <div style={pageStyles.gaugeGrid}>
-          <GaugeChart current={currentOEE.current_oee} previous={currentOEE.previous_oee} title="OEE" color="#FF6600B3"
-                      onClick={(metric) => setSelectedMetric(metric)} isSelected={selectedMetric === 'oee'} />
-          <GaugeChart current={currentOEE.availability} previous={currentOEE.previous_oee} title="Availability" color="#FFEC60"
-                      onClick={(metric) => setSelectedMetric(metric)} isSelected={selectedMetric === 'availability'} />
-          <GaugeChart current={currentOEE.performance} previous={currentOEE.previous_oee} title="Performance" color="#40E377"
-                      onClick={(metric) => setSelectedMetric(metric)} isSelected={selectedMetric === 'performance'} />
-          <GaugeChart current={currentOEE.quality} previous={currentOEE.previous_oee} title="Quality" color="#F47474"
-                      onClick={(metric) => setSelectedMetric(metric)} isSelected={selectedMetric === 'quality'} />
+      {/* Real-Time Section */}
+{selectedTab === 'real-time' && (
+  <>
+    {/* Selected Machine Card */}
+    {selectedMachine && (
+      <MachineCard
+        machine={machines.find(m => m.machine_id === selectedMachine)}
+        currentOEE={currentOEE}
+      />
+    )}
+
+    {/* Gantt Chart */}
+    <DrillMarkGanttChart
+      selectedMachine={selectedMachine}
+      onMachineChange={onMachineChange}
+      timelineData={timelineData}
+      statusSummary={statusSummary}
+      machines={machines}
+    />
+  </>
+)}
+
+
+      {/* Historical Section */}
+{selectedTab === 'historical' && (
+  <div>
+    {/* Action Bar */}
+    <div style={pageStyles.actionBar}>
+      <button style={pageStyles.btn('outline', false)} onClick={() => console.log('Filter clicked')}>
+        <Search size={16} /> Filter
+      </button>
+
+      <button style={pageStyles.btn('primary', aiReportLoading)} onClick={handleGenerateAIReport} disabled={aiReportLoading}>
+        <Sparkles size={16} />
+        {aiReportLoading ? 'Generating...' : 'Generate AI Report'}
+        {aiReportLoading && (
+          <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', 
+                       borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        )}
+      </button>
+
+      <button style={pageStyles.btn('primary', false)} onClick={handleDownloadReport}>
+        <Download size={16} />
+        Download Report
+        {downloadProgress > 0 && downloadProgress < 100 && (
+          <span style={{ marginLeft: '8px' }}>({downloadProgress}%)</span>
+        )}
+      </button>
+    </div>
+
+    {/* Gauges Row */}
+    <div style={{ display: 'flex', gap: '24px', marginTop: '24px', width: '100%' }}>
+      <div style={{ flex: 1 }}>
+        <GaugeChart current={oeeData.oee} title="OEE" color="#FF6600B3" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <GaugeChart current={oeeData.performance} title="Performance" color="#1f78b4B3" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <GaugeChart current={oeeData.availability} title="Availability" color="#52C41AB3" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <GaugeChart current={oeeData.quality} title="Quality" color="#FFCA44B3" />
+      </div>
+    </div>
+
+    {/* Machine Status / Gantt Chart */}
+    <div style={{ marginTop: '32px' }}>
+      <MachineGanttChart
+        selectedMachine={selectedMachine}
+        onMachineChange={onMachineChange}
+        timelineData={timelineData}
+        statusSummary={statusSummary}
+        machines={machines}
+      />
+    </div>
+
+    {/* OEELineChart */}
+    <div style={{ marginTop: '32px' }}>
+      <OEELineChart 
+        data={oeeData} 
+        selectedMetric={selectedMetric} 
+        onMetricReset={() => setSelectedMetric(null)} 
+      />
+    </div>
+  </div>
+)}
+
+      {/* Error Section */}
+      {selectedTab === 'error' && (
+        <div style={{ padding: '20px', color: '#ff4d4f', fontWeight: '500' }}>
+          {/* You can replace this with your actual error analytics later */}
+          <p>No critical errors reported for <strong>{selectedMachine}</strong> in the last 24 hours 🚨</p>
         </div>
       )}
-
-      {/* Gantt Chart */}
-      <MachineGanttChart selectedMachine={selectedMachine} onMachineChange={onMachineChange}
-                        timelineData={timelineData} statusSummary={statusSummary} machines={machines} />
-
-      {/* OEE Metrics Chart */}
-      <OEELineChart data={oeeData} selectedMetric={selectedMetric} onMetricReset={() => setSelectedMetric(null)} />
     </div>
   );
 };

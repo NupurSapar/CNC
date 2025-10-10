@@ -2,6 +2,140 @@
 import React, { useState } from 'react';
 import { Target, Activity, TrendingUp, Award, Zap, Filter, Calendar, Search } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie } from 'recharts';
+import ReactSpeedometer from 'react-d3-speedometer';
+
+export const CurrentGaugeChart = ({ current, title = "Current (Amperes)", color = "#FF6600B3" }) => {
+
+  const data = [
+    { value: current, fill: color },
+    { value: 100 - current, fill: '#e0e0e0' } // corrected the second value to show remaining portion
+  ];
+
+  const renderTicks = () => {
+    const tickPositions = [
+      { value: 0,   x: 160,  y: 180 },
+      { value: 20,  x: 155,  y: 100 },
+      { value: 40,  x: 190,  y: 40 },
+      { value: 60,  x: 360, y: 40 },
+      { value: 80,  x: 393, y: 100 },
+      { value: 100, x: 387, y: 180 }
+    ];
+
+    return tickPositions.map(tick => (
+      <text
+        key={tick.value}
+        x={tick.x}
+        y={tick.y}
+        textAnchor="middle"
+        alignmentBaseline="middle"
+        fontSize="8"
+        fill="#666"
+      >
+        {tick.value}
+      </text>
+    ));
+  };
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '8px',
+      padding: '16px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '250px'
+    }}>
+      {/* Title at top-left with icon */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        fontSize: '16px',
+        fontWeight: '600',
+        marginBottom: '12px',
+        color: '#333',
+        gap: '6px'
+      }}>
+        <Activity size={16} /> {/* Icon */}
+        {title}
+      </div>
+
+      {/* Gauge */}
+      <div style={{ width: '100%', height: '100%' }}>
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="60%"
+              startAngle={225}
+              endAngle={-45}
+              innerRadius={90}
+              outerRadius={115}
+              dataKey="value"
+            />
+            {renderTicks()}
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Current value */}
+      <div style={{
+        fontSize: '32px',
+        fontWeight: '700',
+        color: '#333',
+        textAlign: 'center',
+        marginTop: '-40px'
+      }}>
+        {current}A
+      </div>
+    </div>
+  );
+};
+
+
+export const SpeedometerChart =  ({ title = "Speed", value = 0, maxValue = 100, titleColor = "#000" }) => {
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '24px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      {/* Title at top-left */}
+      <div style={{
+        alignSelf: 'flex-start',
+        fontSize: '16px',
+        fontWeight: '600',
+        marginBottom: '76px',
+        color: titleColor
+      }}>
+        <Activity size={16} /> {/* Icon */}
+        {title}
+      </div>
+
+      {/* Speedometer */}
+      <ReactSpeedometer
+        value={value}
+        minValue={0}
+        maxValue={maxValue}
+        needleColor="#1f78b4"
+        startColor="#00c853"
+        endColor="#d50000"
+        segments={6}
+        segmentColors={["#00c853","#64dd17","#aee775ff","#ffeb3b","#ffb23dff","#ff4545ff"]}
+        currentValueText={`${value} RPM`}
+        height={180}
+        width={250}
+        textColor="#333" // color of the value text
+      />
+    </div>
+  );
+};
 
 const timelineHours = 24;
 
@@ -103,12 +237,14 @@ const GaugeChart = ({ current, previous, title, color, onClick, isSelected }) =>
     ));
   };
 
+  
   const getIcon = () => {
     switch(title) {
       case 'OEE': return <Target size={16} />;
       case 'Availability': return <Activity size={16} />;
       case 'Performance': return <TrendingUp size={16} />;
       case 'Quality': return <Award size={16} />;
+      case 'Speed': return <Activity size={16} />;
       default: return <Zap size={16} />;
     }
   };
@@ -509,6 +645,131 @@ const MachineGanttChart = ({ selectedMachine, onMachineChange, timelineData, sta
   );
 };
 
+const DrillMarkGanttChart = ({ selectedMachine, onMachineChange, timelineData, machines }) => {
+  const [hoveredBlock, setHoveredBlock] = useState(null);
+
+  const statusColors = {
+    Drilling: '#FF4D4F',  // red
+    Marking: '#52C41A',   // green
+  };
+
+  if (!timelineData || !machines) {
+    return (
+      <div style={chartStyles.card}>
+        <div style={chartStyles.loadingContainer}>Loading timeline data...</div>
+      </div>
+    );
+  }
+
+  const allMachines = machines.map(m => m.machine_id);
+  const timelineHours = 24; // assuming 24h timeline
+
+  const handleBlockHover = (block, status) => {
+    setHoveredBlock({ ...block, status });
+  };
+
+  return (
+    <div style={chartStyles.card}>
+      {/* Title */}
+      <div style={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '16px', marginBottom: '16px', gap: '6px' }}>
+        <Activity size={20} /> Drill/Mark Timeline
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px' }}>
+        {/* Machines column */}
+        <div style={{ minWidth: '120px' }}>
+          <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>Device</div>
+          {allMachines.map(machineId => {
+            const machine = machines.find(m => m.machine_id === machineId);
+            const isSelected = machineId === selectedMachine;
+            return (
+              <div
+                key={machineId}
+                onClick={() => onMachineChange(machineId)}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  background: isSelected ? '#FF6600B3' : '#f5f5f5',
+                  color: isSelected ? 'white' : '#333',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {machineId}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Color code column */}
+        <div style={{ minWidth: '80px' }}>
+          <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>Legend</div>
+          {Object.keys(statusColors).map(status => (
+            <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: statusColors[status] }} />
+              <div style={{ fontSize: '12px' }}>{status}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Gantt timeline */}
+        <div style={{ flex: 1, overflowX: 'auto' }}>
+          <div style={{ width: '1400px', position: 'relative' }}>
+            {Object.keys(statusColors).map((status, idx) => (
+              <div key={status} style={{ position: 'relative', height: '30px', marginBottom: '8px', border: '1px solid #e0e0e0' }}>
+                {timelineData[status]?.map((block, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: `${(block.start / timelineHours) * 100}%`,
+                      width: `${(block.duration / timelineHours) * 100}%`,
+                      height: '100%',
+                      background: statusColors[status],
+                      borderRight: '1px solid white',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s'
+                    }}
+                    onMouseEnter={() => handleBlockHover(block, status)}
+                    onMouseLeave={() => setHoveredBlock(null)}
+                  />
+                ))}
+              </div>
+            ))}
+
+            {/* Hover tooltip */}
+            {hoveredBlock && (
+              <div style={{
+                position: 'absolute',
+                top: '-35px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0,0,0,0.8)',
+                color: 'white',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                pointerEvents: 'none',
+                zIndex: 1000
+              }}>
+                {hoveredBlock.status}: {hoveredBlock.duration.toFixed(1)}h (Start: {hoveredBlock.start.toFixed(1)}h)
+              </div>
+            )}
+          </div>
+
+          {/* Time axis */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+            {[0, 4, 8, 12, 16, 20, 24].map(time => (
+              <div key={time} style={{ fontSize: '11px', color: '#999' }}>{time}:00</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // OEE Line Chart Component
 const OEELineChart = ({ data, selectedMetric, onMetricReset }) => {
   return (
@@ -553,4 +814,79 @@ const OEELineChart = ({ data, selectedMetric, onMetricReset }) => {
   );
 };
 
-export { GaugeChart, MachineGanttChart, OEELineChart };
+
+
+const MachineCard = ({ machine, currentOEE }) => {
+  const now = new Date();
+  const timestamp = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+const states = [
+  { name: 'Machine State', label: 'Running', bgColor: '#dcffbaff', textColor: '#52c41a' },  // green
+  { name: 'Program State', label: 'Running', bgColor: '#dcffbaff', textColor: '#52c41a' },  // green
+  { name: 'Drilling', label: 'False', bgColor: '#fee4e1ff', textColor: '#ff4d4f' },        // red
+  { name: 'Marking', label: 'True', bgColor: '#dcffbaff', textColor: '#52c41a' },          // green
+];
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '24px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      margin: '0 auto'
+    }}>
+      {/* Machine Name */}
+      <div style={{ textAlign: 'center', marginBottom: '6px', fontWeight: '700', fontSize: '22px', color: '#1d1d1dff' }}>
+        {machine.machine_name}
+      </div>
+
+      {/* Timestamp */}
+      <div style={{ textAlign: 'center', fontWeight: '400', fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+        {timestamp}
+      </div>
+
+      {/* 4 State Indicators */}
+<div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginBottom: '20px' }}>
+  {states.map((state, idx) => (
+    <div key={idx} style={{ flex: 1, textAlign: 'center' }}>
+      {/* Title above indicator */}
+      <div style={{ fontSize: '10px', fontWeight: '500', marginBottom: '4px', color: '#4747474' }}>
+        {state.name}
+      </div>
+
+      {/* Indicator box */}
+      <div style={{
+        padding: '6px',
+        borderRadius: '6px',
+        background: state.bgColor,
+        color: state.textColor,
+        fontWeight: '600',
+        fontSize: '12px'
+      }}>
+        {state.label}
+      </div>
+    </div>
+  ))}
+</div>
+
+
+      {/* Gauges */}
+      <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+        <div style={{ flex: '1 1 220px', minWidth: '220px' }}>
+          <CurrentGaugeChart current={81} title="Current (Amperes)" color="#FF6600B3" />
+
+        </div>
+        <div style={{ flex: '1 1 220px', minWidth: '220px' }}>
+          <SpeedometerChart
+            value={machine.speed}
+            maxValue={machine.maxSpeed || 100}
+            title="Speed"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+export { GaugeChart, MachineGanttChart, OEELineChart, MachineCard, DrillMarkGanttChart};
