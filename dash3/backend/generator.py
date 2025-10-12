@@ -8,7 +8,7 @@ from db import insert_machine_data
 fake = Faker()
 
 PARAMETER_RANGES = {
-    'cutting_speed': (100, 500),
+    'cutting_speed': (100, 600),
     'current': (0.1, 150.0),  # ✅ Changed from current_marking to current (amperes)
     'drilling': (0.5, 10.0),
     'technology_index': (1, 50),
@@ -44,7 +44,7 @@ def get_realistic_state_transition(machine_id, previous_state):
         machine_states[machine_id] = {
             'state': 'Idle',
             'state_duration': 0,
-            'error_probability': 0.02
+            'error_probability': 0.0015
         }
     
     machine_info = machine_states[machine_id]
@@ -119,7 +119,7 @@ def generate_random_parameters(machine_id):
     
     if state == 'Running':
         base_speed = np.random.uniform(*PARAMETER_RANGES['cutting_speed'])
-        speed_factor = max(0.5, 1 - (thickness / 50))
+        speed_factor = max(0.4, 1 - (thickness / 25))
         cutting_speed = round(base_speed * speed_factor, 1)
     else:
         cutting_speed = 0.0
@@ -229,12 +229,15 @@ def run_continuous_generation(machine_ids, interval=2):
             
             print(f"--- Iteration {iteration} complete ---\n")
             
-            time.sleep(interval)
+            time.sleep(interval + random.uniform(-0.2, 0.5))  # Adds jitter
             
     except KeyboardInterrupt:
         print("\n\nStopping data generation...")
         print(f"Total iterations: {iteration}")
         print("Data generation stopped successfully.")
+
+if thickness < 5.0 and material in ['ALUMINUM', 'COPPER']:
+       cutting_speed *= 1.1
 
 if __name__ == "__main__":
     MACHINE_IDS = [
