@@ -8,7 +8,7 @@ from db import insert_machine_data
 fake = Faker()
 
 PARAMETER_RANGES = {
-    'cutting_speed': (100, 600),
+    'cutting_speed': (400, 600),
     'current': (0.1, 150.0),  # ✅ Changed from current_marking to current (amperes)
     'drilling': (0.5, 10.0),
     'technology_index': (1, 50),
