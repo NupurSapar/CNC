@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Factory, BarChart2, Activity, TrendingUp, AlertCircle, Download, Filter } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import cncImage from './cnc.png';
+import elliotLogo from './elliot.png';
+
 
 // API Service
 const API_BASE = 'http://localhost:5000/api';
@@ -937,10 +940,21 @@ const App = () => {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F5F5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* Sidebar */}
       <div style={{ width: '260px', background: 'white', boxShadow: '2px 0 8px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid #F0F0F0' }}>
-          <div style={{ fontSize: '20px', fontWeight: '700', color: COLORS.primary }}>🏭 CNC Monitor</div>
-          <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>Real-time Dashboard</div>
-        </div>
+  
+          <div style={{ padding: '24px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+  {/* Logo */}
+  <img 
+    src={elliotLogo} // import at top: import elliotLogo from './elliot.png';
+    alt="Elliot Logo" 
+    style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+  />
+
+  {/* Title + Subtitle */}
+  <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ fontSize: '20px', fontWeight: '700', color: "#202020ff" }}>Elliot Systems</div>
+    <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>Real-time Dashboard</div>
+  </div>
+</div>
 
         <div style={{ flex: 1, padding: '16px 0' }}>
           <div 
@@ -953,7 +967,7 @@ const App = () => {
               gap: '12px',
               background: currentPage === 'machines' ? '#FFF7F0' : 'transparent',
               borderLeft: currentPage === 'machines' ? `3px solid ${COLORS.primary}` : '3px solid transparent',
-              color: currentPage === 'machines' ? COLORS.primary : '#333'
+              color: currentPage === 'machines' ? COLORS.primary : '#202020ff'
             }}
           >
             <Factory size={20} />
@@ -1032,66 +1046,89 @@ const App = () => {
                   
                   return (
                     <div 
-                      key={machine.machine_id}
-                      onClick={() => handleMachineSelect(machine.machine_id)}
-                      style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        boxShadow: selectedMachine === machine.machine_id ? `0 4px 16px ${COLORS.primary}40` : '0 2px 8px rgba(0,0,0,0.1)',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s',
-                        border: selectedMachine === machine.machine_id ? `2px solid ${COLORS.primary}` : '2px solid transparent'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                        <div>
-                          <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>{machine.machine_id}</div>
-                          <div style={{ fontSize: '14px', color: '#666' }}>{machine.technology_name || 'N/A'}</div>
-                        </div>
-                        <div style={{
-                          width: '12px',
-                          height: '12px',
-                          borderRadius: '50%',
-                          background: isRunning ? COLORS.running : (hasError ? COLORS.error : COLORS.idle),
-                          boxShadow: isRunning ? `0 0 10px ${COLORS.running}` : 'none'
-                        }} />
-                      </div>
+  key={machine.machine_id}
+  onClick={() => handleMachineSelect(machine.machine_id)}
+  style={{
+    background: 'white',
+    borderRadius: '12px',
+    padding: '24px',
+    boxShadow: selectedMachine === machine.machine_id ? `0 4px 16px ${COLORS.primary}40` : '0 2px 8px rgba(0,0,0,0.1)',
+    cursor: 'pointer',
+    transition: 'all 0.3s',
+    border: selectedMachine === machine.machine_id ? `2px solid ${COLORS.primary}` : '2px solid transparent'
+  }}
+>
+  {/* Top Row: Technology Name + Status Dot */}
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+    <div style={{ fontSize: '14px', color: '#666' }}>
+      {machine.technology_name || 'N/A'}
+    </div>
+    <div style={{
+      width: '12px',
+      height: '12px',
+      borderRadius: '50%',
+      background: isRunning ? COLORS.running : (hasError ? COLORS.error : COLORS.idle),
+      boxShadow: isRunning ? `0 0 10px ${COLORS.running}` : 'none'
+    }} />
+  </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>State</div>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: isRunning ? COLORS.running : COLORS.error }}>{machine.state}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Material</div>
-                          <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.material || 'N/A'}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Speed</div>
-                          <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.cutting_speed?.toFixed(1) || 0} mm/s</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Current</div>
-                          <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.current?.toFixed(2) || 0} A</div>
-                        </div>
-                      </div>
+  {/* Image Centered */}
+  <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+    <img 
+      src={cncImage} 
+      alt="CNC Machine" 
+      style={{ 
+        width: '100%',       // takes 90% of card width
+        height: '200px',    // fixed height
+        objectFit: 'cover',
+        borderRadius: '12px'
+      }} 
+    />
+  </div>
 
-                      <button style={{
-                        width: '100%',
-                        padding: '10px',
-                        background: selectedMachine === machine.machine_id ? COLORS.primary : '#F5F5F5',
-                        color: selectedMachine === machine.machine_id ? 'white' : '#333',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}>
-                        {selectedMachine === machine.machine_id ? 'Selected' : 'View Dashboard'}
-                      </button>
-                    </div>
+  {/* Machine Name Centered */}
+  <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>
+    {machine.machine_id}
+  </div>
+
+
+  {/* Grid Info */}
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+    <div>
+      <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>State</div>
+      <div style={{ fontSize: '14px', fontWeight: '600', color: isRunning ? COLORS.running : COLORS.error }}>{machine.state}</div>
+    </div>
+    <div>
+      <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Material</div>
+      <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.material || 'N/A'}</div>
+    </div>
+    <div>
+      <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Speed</div>
+      <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.cutting_speed?.toFixed(1) || 0} mm/s</div>
+    </div>
+    <div>
+      <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>Current</div>
+      <div style={{ fontSize: '14px', fontWeight: '600' }}>{machine.current?.toFixed(2) || 0} A</div>
+    </div>
+  </div>
+
+  {/* Button */}
+  <button style={{
+    width: '100%',
+    padding: '10px',
+    background: selectedMachine === machine.machine_id ? COLORS.primary : '#F5F5F5',
+    color: selectedMachine === machine.machine_id ? 'white' : '#333',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s'
+  }}>
+    {selectedMachine === machine.machine_id ? 'Selected' : 'View Dashboard'}
+  </button>
+</div>
+
                   );
                 })}
               </div>
