@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import dataService from '../services/DataService';
 import cncImage from './cncimg.png';
+import { Cpu, Zap, Package, Ruler, Plug, Tool } from 'lucide-react';
+
+
 
 const RealtimeDashboard = ({ machineId }) => {
   const [realtimeData, setRealtimeData] = useState(null);
@@ -103,27 +106,27 @@ const RealtimeDashboard = ({ machineId }) => {
       <div className="parameters-section">
         <h3>Current Parameters</h3>
         <div className="parameters-grid">
-          <ParameterCard label="State" value={realtimeData?.state ?? 'Unknown'} icon="⚙️" />
+          <ParameterCard label="State" value={realtimeData?.state ?? 'Unknown'} icon={Cpu} />
           <ParameterCard
             label="Cutting Speed"
             value={`${(realtimeData?.cutting_speed ?? 0).toFixed(1)} mm/s`}
-            icon="⚡"
+            icon={Zap}
           />
-          <ParameterCard label="Material" value={realtimeData?.material ?? 'N/A'} icon="📦" />
+          <ParameterCard label="Material" value={realtimeData?.material ?? 'N/A'} icon={Package} />
           <ParameterCard
             label="Thickness"
             value={`${(realtimeData?.thickness ?? 0).toFixed(1)} mm`}
-            icon="📏"
+            icon={Ruler}
           />
           <ParameterCard
             label="Current"
             value={`${(realtimeData?.current_marking ?? 0).toFixed(1)} A`}
-            icon="🔌"
+            icon={Plug}
           />
           <ParameterCard
             label="Technology"
             value={realtimeData?.technology_name ?? 'N/A'}
-            icon="🔧"
+            icon={Tool}
           />
         </div>
       </div>
@@ -165,15 +168,16 @@ const GaugeChart = ({ title, value, previousValue, color = '#9C27B0' }) => {
   );
 };
 
-const ParameterCard = ({ label, value, icon }) => (
-  <div className="parameter-card">
-    <div className="parameter-icon">{icon}</div>
+const ParameterCard = ({ label, value, icon: Icon }) => (
+  <div className="parameter-card" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+    {Icon && <Icon size={20} />}
     <div className="parameter-content">
-      <div className="parameter-label">{label}</div>
-      <div className="parameter-value">{value}</div>
+      <div className="parameter-label" style={{ fontSize: '12px', color: '#666' }}>{label}</div>
+      <div className="parameter-value" style={{ fontSize: '14px', fontWeight: '600' }}>{value}</div>
     </div>
   </div>
 );
+
 
 const GanttChart = ({ data }) => {
   const getStatusColor = (status) => {

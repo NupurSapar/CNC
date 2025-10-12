@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Factory, BarChart2, Activity, TrendingUp, AlertCircle, Download, Filter } from 'lucide-react';
+import { Factory, BarChart2, Activity, TrendingUp, AlertCircle, Download, Filter, Package, Scissors, Ruler, BarChart3, PieChartIcon } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import cncImage from './cnc.png';
 import elliotLogo from './elliot.png';
+import { Gauge, Zap, CheckCircle, RocketIcon, Clock, Power, Wind } from 'lucide-react';
 
 
 // API Service
@@ -31,7 +32,7 @@ const COLORS = {
 };
 
 // Gauge Component
-const GaugeChart = ({ value, title, color = COLORS.primary }) => {
+const GaugeChart = ({ value, title, color = COLORS.primary, icon: Icon }) => {
   const safeValue = Math.min(Math.max(value || 0, 0), 100);
   const data = [
     { value: safeValue, fill: color },
@@ -39,35 +40,126 @@ const GaugeChart = ({ value, title, color = COLORS.primary }) => {
   ];
 
   return (
-    <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#333' }}>{title}</div>
+    <div
+      style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '20px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}
+    >
+      {/* Title Row with Icon */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          marginBottom: '12px',
+          color: '#333'
+        }}
+      >
+        {Icon && <Icon size={18} />}
+        {title}
+      </div>
+
+      {/* Gauge Chart */}
       <div style={{ position: 'relative', height: '200px' }}>
         <ResponsiveContainer>
           <PieChart>
-            <Pie data={data} cx="50%" cy="60%" startAngle={225} endAngle={-45} innerRadius={60} outerRadius={80} dataKey="value" />
+            <Pie
+              data={data}
+              cx="50%"
+              cy="60%"
+              startAngle={225}
+              endAngle={-45}
+              innerRadius={60}
+              outerRadius={80}
+              dataKey="value"
+            />
           </PieChart>
         </ResponsiveContainer>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -20%)', textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', fontWeight: '700', color: '#333' }}>{safeValue.toFixed(1)}%</div>
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -20%)',
+            textAlign: 'center'
+          }}
+        >
+          <div
+            style={{
+              fontSize: '32px',
+              fontWeight: '700',
+              color: '#333'
+            }}
+          >
+            {safeValue.toFixed(1)}%
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
+
 // Speedometer Component
-const SpeedometerChart = ({ value, maxValue = 500, title = "Speed" }) => {
+const SpeedometerChart = ({ 
+  value, 
+  maxValue = 500, 
+  title = "Speed", 
+  Icon = RocketIcon     // 👈 default icon
+}) => {
   const safeValue = Math.min(Math.max(value || 0, 0), maxValue);
   const percentage = (safeValue / maxValue) * 100;
-  
+
   return (
-    <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#333' }}>{title}</div>
+    <div style={{ 
+      background: 'white', 
+      borderRadius: '12px', 
+      padding: '20px', 
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)' 
+    }}>
+      {/* 🏎️ Title with Icon */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        fontSize: '16px', 
+        fontWeight: '600', 
+        marginBottom: '12px', 
+        color: '#333' 
+      }}>
+        <Icon size={20} /> 
+        {title}
+      </div>
+
       <div style={{ position: 'relative', height: '150px' }}>
-        <div style={{ width: '100%', height: '10px', background: '#E8E8E8', borderRadius: '5px', overflow: 'hidden' }}>
-          <div style={{ width: `${percentage}%`, height: '100%', background: `linear-gradient(90deg, ${COLORS.success}, ${COLORS.warning}, ${COLORS.error})`, transition: 'width 0.5s' }} />
+        <div style={{ 
+          width: '100%', 
+          height: '10px', 
+          background: '#E8E8E8', 
+          borderRadius: '5px', 
+          overflow: 'hidden' 
+        }}>
+          <div 
+            style={{ 
+              width: `${percentage}%`, 
+              height: '100%', 
+              background: `linear-gradient(90deg, ${COLORS.success}, ${COLORS.warning}, ${COLORS.error})`, 
+              transition: 'width 0.5s' 
+            }} 
+          />
         </div>
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '28px', fontWeight: '700', color: '#333' }}>
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '20px', 
+          fontSize: '28px', 
+          fontWeight: '700', 
+          color: '#333' 
+        }}>
           {safeValue.toFixed(1)} <span style={{ fontSize: '16px', color: '#999' }}>mm/s</span>
         </div>
       </div>
@@ -103,6 +195,7 @@ const RealtimeDashboard = ({ machineId }) => {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const scrollPositionRef = useRef(0);
   const currentMachineRef = useRef(machineId);
+  
 
   useEffect(() => {
     currentMachineRef.current = machineId;
@@ -192,46 +285,46 @@ const RealtimeDashboard = ({ machineId }) => {
 
       {/* Current and Speed */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-        <GaugeChart value={(realtimeData.current / 150) * 100} title={`Current: ${realtimeData.current.toFixed(2)} A`} color={COLORS.primary} />
-        <SpeedometerChart value={realtimeData.cutting_speed} maxValue={500} title="Cutting Speed" />
+        <GaugeChart value={(realtimeData.current / 150) * 100} title={`Current: ${realtimeData.current.toFixed(2)} A`} color={COLORS.primary} icon ={Zap}/>
+        <SpeedometerChart value={realtimeData.cutting_speed} maxValue={500} icon ={RocketIcon} title="Cutting Speed"/>
       </div>
 
       {/* OEE Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <GaugeChart value={oeeData?.oee || 0} title="OEE" color={COLORS.primary} />
-        <GaugeChart value={oeeData?.availability || 0} title="Availability" color={COLORS.success} />
-        <GaugeChart value={oeeData?.performance || 0} title="Performance" color={COLORS.info} />
-        <GaugeChart value={oeeData?.quality || 0} title="Quality" color={COLORS.warning} />
+        <GaugeChart title="OEE" value={oeeData?.current_oee} icon={Gauge} />
+<GaugeChart title="Availability" value={oeeData?.availability} color="#4CAF50" icon={Activity} />
+<GaugeChart title="Performance" value={oeeData?.performance} color="#2196F3" icon={Zap} />
+<GaugeChart title="Quality" value={oeeData?.quality} color="#FF9800" icon={CheckCircle} />
       </div>
 
       {/* Enhanced Gantt Chart with Legend */}
       <div style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} key={`gantt-${lastUpdate.getTime()}`}>
-        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Machine Timeline (24h) - Updates every 10s</h3>
+        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Clock size={20} /> Machine Timeline (24h) - Updates every 10s</h3>
         
         {/* Legend */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', paddingBottom: '12px', borderBottom: '2px solid #F0F0F0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.running, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.running, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Running</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.drilling, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.drilling, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Drilling</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.idle, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.idle, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Idle</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.off, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.off, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Off</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.wait, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.wait, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Wait</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.error, borderRadius: '4px', border: '1px solid #ddd' }} />
+            <div style={{ width: '20px', height: '20px', background: COLORS.error, borderRadius: '50%', border: '1px solid #ddd' }} />
             <span style={{ fontSize: '13px', fontWeight: '500' }}>Error</span>
           </div>
         </div>
@@ -543,15 +636,15 @@ const HistoricalDashboard = ({ machineId }) => {
 
       {/* OEE Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <GaugeChart value={oeeData?.oee || 0} title="OEE" color={COLORS.primary} />
-        <GaugeChart value={oeeData?.availability || 0} title="Availability" color={COLORS.success} />
-        <GaugeChart value={oeeData?.performance || 0} title="Performance" color={COLORS.info} />
-        <GaugeChart value={oeeData?.quality || 0} title="Quality" color={COLORS.warning} />
+        <GaugeChart value={oeeData?.oee || 0} title="OEE" color={COLORS.primary} icon={Gauge}/>
+        <GaugeChart value={oeeData?.availability || 0} title="Availability" color={COLORS.success} icon={Activity}/>
+        <GaugeChart value={oeeData?.performance || 0} title="Performance" color={COLORS.info} icon={Zap}/>
+        <GaugeChart value={oeeData?.quality || 0} title="Quality" color={COLORS.warning} icon={CheckCircle}/>
       </div>
 
       {/* OEE Trends */}
       <div style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>OEE Metrics Over Time (Calculated from actual data)</h3>
+        <h3 style={{ marginBottom: '26px', fontSize: '18px', fontWeight: '600' }} > <LineChart size={20} /> OEE Metrics Over Time (Calculated from actual data)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={oeeHistorical}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -570,7 +663,7 @@ const HistoricalDashboard = ({ machineId }) => {
       {/* Override & Material */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Override Status</h3>
+          <h3 style={{ marginBottom: '18px', fontSize: '18px', fontWeight: '600' }}> <Power size={20} />  Override Status</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={overrideChart}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -583,7 +676,7 @@ const HistoricalDashboard = ({ machineId }) => {
         </div>
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Material Distribution</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Package size={20} /> Material Distribution</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={materialChart}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -599,7 +692,7 @@ const HistoricalDashboard = ({ machineId }) => {
       {/* Gas Type & Scrap */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Gas Type Distribution</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Wind size={20} /> Gas Type Distribution</h3>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie data={gasTypeChart} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>
@@ -614,7 +707,7 @@ const HistoricalDashboard = ({ machineId }) => {
         </div>
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Scrap Cut Analysis</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Scissors size={20} /> Scrap Cut Analysis</h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={scrapChart}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -633,7 +726,7 @@ const HistoricalDashboard = ({ machineId }) => {
 
       {/* Thickness vs Drilling Depth Scatter */}
       <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Thickness vs Drilling Depth</h3>
+        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Ruler size={20} /> Thickness vs Drilling Depth</h3>
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" />
@@ -730,7 +823,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
       {/* Error Code & Arc Error */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Error Code Frequency</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <BarChart3 size={20} /> Error Code Frequency</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={errorCodeChart}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -743,7 +836,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
         </div>
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Arc Error Distribution</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> < PieChartIcon size={20} /> Arc Error Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie 
@@ -773,7 +866,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
       {/* Error Text & Level */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Error Text Distribution</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> < PieChartIcon size={20} /> Error Text Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie 
@@ -802,7 +895,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
         </div>
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Error Level Distribution</h3>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> < BarChart3 size={20} /> Error Level Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={errorLevelChart}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -821,7 +914,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
 
       {/* Error Details Table */}
       <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Error Details</h3>
+        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> < AlertCircle size={20} /> Error Details</h3>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -873,6 +966,7 @@ const ErrorAnalysisDashboard = ({ machineId }) => {
 
 // Main App Component
 const App = () => {
+  const [selectedClient, setSelectedClient] = useState(null);
   const [machines, setMachines] = useState([]);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [currentPage, setCurrentPage] = useState('machines');
@@ -908,6 +1002,7 @@ const App = () => {
     setDashboardTab('realtime');
   };
 
+  
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#F5F5F5' }}>
@@ -919,6 +1014,8 @@ const App = () => {
       </div>
     );
   }
+
+  
 
   if (error) {
     return (
