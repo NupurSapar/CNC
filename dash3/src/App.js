@@ -27,6 +27,7 @@ const COLORS = {
   error_state: '#FF4D4F',
   stopped: '#8C8C8C',
   drilling: '#3b82f6',
+  marking: '#df2ab5ff',
   off: '#94a3b8',
   wait: '#f97316'
 };
@@ -308,8 +309,8 @@ const RealtimeDashboard = ({ machineId }) => {
         {/* Legend */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', paddingBottom: '12px', borderBottom: '2px solid #F0F0F0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.running, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Running</span>
+            <div style={{ width: '20px', height: '20px', background: COLORS.marking, borderRadius: '50%', border: '1px solid #ddd' }} />
+            <span style={{ fontSize: '13px', fontWeight: '500' }}>Marking</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '20px', height: '20px', background: COLORS.drilling, borderRadius: '50%', border: '1px solid #ddd' }} />
@@ -339,7 +340,7 @@ const RealtimeDashboard = ({ machineId }) => {
           <div style={{ height: '50px', background: '#F5F5F5', borderRadius: '8px', display: 'flex', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
             {timelineData?.overview?.map((block, i) => {
               const colors = {
-                Running: COLORS.running,
+                Marking: COLORS.marking,
                 Drilling: COLORS.drilling,
                 Idle: COLORS.idle,
                 Error: COLORS.error,
@@ -373,12 +374,12 @@ const RealtimeDashboard = ({ machineId }) => {
         </div>
 
         {/* Individual Status Rows */}
-        {['Running', 'Drilling', 'Idle', 'Error', 'Stopped'].map(statusType => {
+        {['Marking', 'Drilling', 'Idle', 'Error', 'Stopped'].map(statusType => {
           const statusData = timelineData?.[statusType] || [];
           if (statusData.length === 0) return null;
 
           const colors = {
-            Running: COLORS.running,
+            Marking: COLORS.marking,
             Drilling: COLORS.drilling,
             Idle: COLORS.idle,
             Error: COLORS.error,
