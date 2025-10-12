@@ -236,8 +236,6 @@ def run_continuous_generation(machine_ids, interval=2):
         print(f"Total iterations: {iteration}")
         print("Data generation stopped successfully.")
 
-if thickness < 5.0 and material in ['ALUMINUM', 'COPPER']:
-       cutting_speed *= 1.1
 
 if __name__ == "__main__":
     MACHINE_IDS = [
