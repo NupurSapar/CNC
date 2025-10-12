@@ -233,11 +233,15 @@ const RealtimeDashboard = ({ machineId }) => {
           const timestamp = new Date(d.time);
           return {
             time: `${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`,
-            current: d.current || 0,
-            speed: d.cutting_speed || 0
+            current: parseFloat(d.current) || 0,
+            speed: parseFloat(d.cutting_speed) || 0
           };
         });
+
+        if (chartData.length > 0) {                     // ✅ Added validation
         setHistoricalChartData(chartData);
+        }
+        
         
         setLoading(false);
         setLastUpdate(new Date());
@@ -291,10 +295,10 @@ const RealtimeDashboard = ({ machineId }) => {
 
       {/* OEE Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <GaugeChart title="OEE" value={oeeData?.current_oee} icon={Gauge} />
-<GaugeChart title="Availability" value={oeeData?.availability} color="#4CAF50" icon={Activity} />
-<GaugeChart title="Performance" value={oeeData?.performance} color="#2196F3" icon={Zap} />
-<GaugeChart title="Quality" value={oeeData?.quality} color="#FF9800" icon={CheckCircle} />
+        <GaugeChart title="OEE" value={oeeData?.oee} icon={Gauge} />
+      <GaugeChart title="Availability" value={oeeData?.availability} color="#4CAF50" icon={Activity} />
+      <GaugeChart title="Performance" value={oeeData?.performance} color="#2196F3" icon={Zap} />
+      <GaugeChart title="Quality" value={oeeData?.quality} color="#FF9800" icon={CheckCircle} />
       </div>
 
       {/* Enhanced Gantt Chart with Legend */}
@@ -412,61 +416,75 @@ const RealtimeDashboard = ({ machineId }) => {
       </div>
 
       {/* Real-time Line Charts - FIXED FOR AUTO REFRESH */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Current (Amperes) - Real-time (10s intervals)</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={historicalChartData} key={`current-${lastUpdate.getTime()}`}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="time" 
-                style={{ fontSize: '11px' }} 
-                interval={Math.floor(historicalChartData.length / 6)}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis style={{ fontSize: '12px' }} />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="current" 
-                stroke={COLORS.primary} 
-                strokeWidth={2} 
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Cutting Speed (mm/s) - Real-time (10s intervals)</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={historicalChartData} key={`speed-${lastUpdate.getTime()}`}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="time" 
-                style={{ fontSize: '11px' }} 
-                interval={Math.floor(historicalChartData.length / 6)}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis style={{ fontSize: '12px' }} />
-              <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="speed" 
-                stroke={COLORS.success} 
-                strokeWidth={2} 
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+  {/* Current Chart */}
+  <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Current (Amperes) - Real-time (10s intervals)</h3>
+    {historicalChartData.length > 0 ? (
+      <ResponsiveContainer width="100%" height={250}>
+        <LineChart data={historicalChartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="time" 
+            style={{ fontSize: '11px' }} 
+            interval={Math.floor(historicalChartData.length / 6)}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis style={{ fontSize: '12px' }} />
+          <Tooltip />
+          <Line 
+            type="monotone" 
+            dataKey="current" 
+            stroke={COLORS.primary} 
+            strokeWidth={2} 
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    ) : (
+      <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+        No data available
       </div>
+    )}
+  </div>
+
+  {/* Speed Chart */}
+  <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Cutting Speed (mm/s) - Real-time (10s intervals)</h3>
+    {historicalChartData.length > 0 ? (
+      <ResponsiveContainer width="100%" height={250}>
+        <LineChart data={historicalChartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="time" 
+            style={{ fontSize: '11px' }} 
+            interval={Math.floor(historicalChartData.length / 6)}
+            angle={-45}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis style={{ fontSize: '12px' }} />
+          <Tooltip />
+          <Line 
+            type="monotone" 
+            dataKey="speed" 
+            stroke={COLORS.success} 
+            strokeWidth={2} 
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    ) : (
+      <div style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+        No data available
+      </div>
+    )}
+  </div>
+</div>
     </div>
   );
 };
