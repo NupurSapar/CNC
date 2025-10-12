@@ -15,6 +15,7 @@ const fetchAPI = async (endpoint) => {
   return await response.json();
 };
 
+
 // Color Scheme
 const COLORS = {
   primary: '#FF6600',
@@ -185,7 +186,6 @@ const BinaryIndicator = ({ label, isActive }) => (
   </div>
 );
 
-// Real-time Dashboard with 10s refresh and scroll preservation
 const RealtimeDashboard = ({ machineId }) => {
   const [realtimeData, setRealtimeData] = useState(null);
   const [oeeData, setOeeData] = useState(null);
@@ -193,9 +193,9 @@ const RealtimeDashboard = ({ machineId }) => {
   const [historicalChartData, setHistoricalChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+
   const scrollPositionRef = useRef(0);
   const currentMachineRef = useRef(machineId);
-  
 
   useEffect(() => {
     currentMachineRef.current = machineId;
@@ -203,263 +203,216 @@ const RealtimeDashboard = ({ machineId }) => {
 
   useEffect(() => {
     if (!machineId) return;
-    
+
     const loadData = async () => {
-      // Don't update if machine changed
       if (currentMachineRef.current !== machineId) return;
-      
-      // Save scroll position
+
       scrollPositionRef.current = window.scrollY;
-      
+
       try {
         if (loading) setLoading(true);
-        
+
         const [realtime, oee, timeline, historical] = await Promise.all([
           fetchAPI(`/machines/${machineId}/realtime`),
           fetchAPI(`/machines/${machineId}/oee?range=24h`),
           fetchAPI(`/machines/${machineId}/timeline?range=24h`),
-          fetchAPI(`/machines/${machineId}/historical?range=1h`)
+          fetchAPI(`/machines/${machineId}/historical?range=1h`),
         ]);
-        
-        // Only update if still on same machine
+
         if (currentMachineRef.current !== machineId) return;
-        
+
         setRealtimeData(realtime.data);
         setOeeData(oee);
         setTimelineData(timeline.timeline);
-        
-        // Process historical data - add timestamps with 10s intervals
-        const chartData = historical.data.slice(-50).map((d, idx) => {
-          const timestamp = new Date(d.time);
-          return {
-            time: `${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}:${timestamp.getSeconds().toString().padStart(2, '0')}`,
-            current: d.current || 0,
-            speed: d.cutting_speed || 0
-          };
-        });
-        setHistoricalChartData(chartData);
-        
+
+        // 🔸 Only update line data, don't remount chart
+        const newChartData = historical.data
+          .slice(-50)
+          .map((d) => {
+            const timestamp = new Date(d.time);
+            return {
+              time: `${timestamp.getHours().toString().padStart(2, "0")}:${timestamp
+                .getMinutes()
+                .toString()
+                .padStart(2, "0")}:${timestamp.getSeconds().toString().padStart(2, "0")}`,
+              current: d.current || 0,
+              speed: d.cutting_speed || 0,
+            };
+          });
+
+        setHistoricalChartData(newChartData);
+
         setLoading(false);
         setLastUpdate(new Date());
-        
-        // Restore scroll position after render
+
         setTimeout(() => {
           window.scrollTo(0, scrollPositionRef.current);
         }, 0);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error("Error loading data:", error);
         if (loading) setLoading(false);
       }
     };
 
     loadData();
-    // Refresh every 10 seconds
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, [machineId]);
 
-  if (loading && !realtimeData) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>;
-  if (!realtimeData) return <div style={{ padding: '40px', textAlign: 'center' }}>No data available</div>;
+  if (loading && !realtimeData)
+    return <div style={{ padding: "40px", textAlign: "center" }}>Loading...</div>;
+  if (!realtimeData)
+    return <div style={{ padding: "40px", textAlign: "center" }}>No data available</div>;
 
-  const isRunning = realtimeData.state === 'Running';
-  const isProgramActive = realtimeData.program_state === 'ACTIVE';
+  const isRunning = realtimeData.state === "Running";
+  const isProgramActive = realtimeData.program_state === "ACTIVE";
   const isDrilling = realtimeData.drilling > 0;
   const isMarking = realtimeData.current > 0;
 
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600' }}>Real-time Monitor - {machineId}</h2>
-        <div style={{ fontSize: '12px', color: '#999' }}>
+    <div style={{ padding: "24px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <h2 style={{ fontSize: "24px", fontWeight: "600" }}>
+          Real-time Monitor - {machineId}
+        </h2>
+        <div style={{ fontSize: "12px", color: "#999" }}>
           🔄 Auto-refresh: 10s | Last update: {lastUpdate.toLocaleTimeString()}
         </div>
       </div>
-      
+
       {/* Binary Indicators */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
         <BinaryIndicator label="Machine State" isActive={isRunning} />
         <BinaryIndicator label="Program State" isActive={isProgramActive} />
         <BinaryIndicator label="Marking" isActive={isMarking} />
         <BinaryIndicator label="Drilling" isActive={isDrilling} />
       </div>
 
-      {/* Current and Speed */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-        <GaugeChart value={(realtimeData.current / 150) * 100} title={`Current: ${realtimeData.current.toFixed(2)} A`} color={COLORS.primary} icon ={Zap}/>
-        <SpeedometerChart value={realtimeData.cutting_speed} maxValue={500} icon ={RocketIcon} title="Cutting Speed"/>
+      {/* Gauges */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "24px",
+          marginBottom: "24px",
+        }}
+      >
+        <GaugeChart
+          value={(realtimeData.current / 150) * 100}
+          title={`Current: ${realtimeData.current.toFixed(2)} A`}
+          color={COLORS.primary}
+          icon={Zap}
+        />
+        <SpeedometerChart
+          value={realtimeData.cutting_speed}
+          maxValue={500}
+          icon={RocketIcon}
+          title="Cutting Speed"
+        />
       </div>
 
-      {/* OEE Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      {/* OEE */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
         <GaugeChart title="OEE" value={oeeData?.current_oee} icon={Gauge} />
-<GaugeChart title="Availability" value={oeeData?.availability} color="#4CAF50" icon={Activity} />
-<GaugeChart title="Performance" value={oeeData?.performance} color="#2196F3" icon={Zap} />
-<GaugeChart title="Quality" value={oeeData?.quality} color="#FF9800" icon={CheckCircle} />
+        <GaugeChart title="Availability" value={oeeData?.availability} color="#4CAF50" icon={Activity} />
+        <GaugeChart title="Performance" value={oeeData?.performance} color="#2196F3" icon={Zap} />
+        <GaugeChart title="Quality" value={oeeData?.quality} color="#FF9800" icon={CheckCircle} />
       </div>
 
-      {/* Enhanced Gantt Chart with Legend */}
-      <div style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} key={`gantt-${lastUpdate.getTime()}`}>
-        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}> <Clock size={20} /> Machine Timeline (24h) - Updates every 10s</h3>
-        
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', paddingBottom: '12px', borderBottom: '2px solid #F0F0F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.running, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Running</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.drilling, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Drilling</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.idle, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Idle</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.off, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Off</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.wait, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Wait</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '20px', height: '20px', background: COLORS.error, borderRadius: '50%', border: '1px solid #ddd' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500' }}>Error</span>
-          </div>
-        </div>
-        
-        {/* Timeline Bar */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#666', marginBottom: '8px' }}>Overview</div>
-          <div style={{ height: '50px', background: '#F5F5F5', borderRadius: '8px', display: 'flex', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-            {timelineData?.overview?.map((block, i) => {
-              const colors = {
-                Running: COLORS.running,
-                Drilling: COLORS.drilling,
-                Idle: COLORS.idle,
-                Error: COLORS.error,
-                Stopped: COLORS.stopped,
-                Off: COLORS.off,
-                Wait: COLORS.wait
-              };
-              const totalDuration = timelineData.overview.reduce((sum, b) => sum + (b.duration || 0), 0);
-              const width = totalDuration > 0 ? (block.duration / totalDuration) * 100 : 0;
-              
-              if (width <= 0) return null;
-              
-              return (
-                <div
-                  key={i}
-                  style={{
-                    width: `${width}%`,
-                    background: colors[block.status] || '#CCC',
-                    borderRight: '1px solid white',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s',
-                    minWidth: '2px'
-                  }}
-                  title={`${block.status}: ${(block.duration / 60).toFixed(1)} min`}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Individual Status Rows */}
-        {['Running', 'Drilling', 'Idle', 'Error', 'Stopped'].map(statusType => {
-          const statusData = timelineData?.[statusType] || [];
-          if (statusData.length === 0) return null;
-
-          const colors = {
-            Running: COLORS.running,
-            Drilling: COLORS.drilling,
-            Idle: COLORS.idle,
-            Error: COLORS.error,
-            Stopped: COLORS.stopped
-          };
-
-          const totalDuration = statusData.reduce((sum, d) => sum + (d.duration || 0), 0);
-
-          return (
-            <div key={statusType} style={{ marginBottom: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>{statusType}</div>
-              <div style={{ height: '30px', background: '#F5F5F5', borderRadius: '6px', display: 'flex', overflow: 'hidden' }}>
-                {statusData.map((item, idx) => {
-                  const width = totalDuration > 0 ? (item.duration / totalDuration) * 100 : 0;
-                  if (width <= 0) return null;
-
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        width: `${width}%`,
-                        background: colors[statusType],
-                        borderRight: '1px solid white',
-                        cursor: 'pointer',
-                        minWidth: '2px'
-                      }}
-                      title={`${Math.round(item.duration)}s`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Real-time Line Charts - FIXED FOR AUTO REFRESH */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Current (Amperes) - Real-time (10s intervals)</h3>
+      {/* Real-time Line Charts — 🪄 smooth refresh */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "24px",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3 style={{ marginBottom: "16px", fontSize: "18px", fontWeight: "600" }}>
+            Current (Amperes) - Real-time (10s intervals)
+          </h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={historicalChartData} key={`current-${lastUpdate.getTime()}`}>
+            <LineChart data={historicalChartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="time" 
-                style={{ fontSize: '11px' }} 
+              <XAxis
+                dataKey="time"
+                style={{ fontSize: "11px" }}
                 interval={Math.floor(historicalChartData.length / 6)}
                 angle={-45}
                 textAnchor="end"
                 height={60}
               />
-              <YAxis style={{ fontSize: '12px' }} />
+              <YAxis style={{ fontSize: "12px" }} />
               <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="current" 
-                stroke={COLORS.primary} 
-                strokeWidth={2} 
+              <Line
+                type="monotone"
+                dataKey="current"
+                stroke={COLORS.primary}
+                strokeWidth={2}
                 dot={false}
-                isAnimationActive={false}
+                isAnimationActive={false} // ✅ smooth update
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        <div style={{ background: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600' }}>Cutting Speed (mm/s) - Real-time (10s intervals)</h3>
+        <div
+          style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3 style={{ marginBottom: "16px", fontSize: "18px", fontWeight: "600" }}>
+            Cutting Speed (mm/s) - Real-time (10s intervals)
+          </h3>
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={historicalChartData} key={`speed-${lastUpdate.getTime()}`}>
+            <LineChart data={historicalChartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="time" 
-                style={{ fontSize: '11px' }} 
+              <XAxis
+                dataKey="time"
+                style={{ fontSize: "11px" }}
                 interval={Math.floor(historicalChartData.length / 6)}
                 angle={-45}
                 textAnchor="end"
                 height={60}
               />
-              <YAxis style={{ fontSize: '12px' }} />
+              <YAxis style={{ fontSize: "12px" }} />
               <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="speed" 
-                stroke={COLORS.success} 
-                strokeWidth={2} 
+              <Line
+                type="monotone"
+                dataKey="speed"
+                stroke={COLORS.success}
+                strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
               />
@@ -470,7 +423,6 @@ const RealtimeDashboard = ({ machineId }) => {
     </div>
   );
 };
-
 // Historical Dashboard with Date Range Picker
 const HistoricalDashboard = ({ machineId }) => {
   const [startDate, setStartDate] = useState(() => {
