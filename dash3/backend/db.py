@@ -199,7 +199,7 @@ def insert_multiple_machine_data(data_list):
         %(time)s, %(machine_id)s, %(state)s, %(program_state)s, %(current)s,
         %(drilling)s, %(cutting_speed)s, %(override_flag)s, %(homing)s,
         %(homed)s, %(technology_name)s, %(technology_index)s, %(technology_dataset)s,
-        %(material)s, %(tickness)s, %(gas_type)s, %(arc)s, %(arc_ignite)s,
+        %(material)s, %(thickness)s, %(gas_type)s, %(arc)s, %(arc_ignite)s,
         %(drilling_depth)s, %(scrap_cut)s, %(din_file_name)s, %(arc_error)s,
         %(error_code)s, %(error_text)s, %(error_parameter)s, %(error_level)s
     );

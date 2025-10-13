@@ -15,7 +15,6 @@ const fetchAPI = async (endpoint) => {
   return await response.json();
 };
 
-
 // Color Scheme
 const COLORS = {
   primary: '#FF6600',
@@ -28,6 +27,7 @@ const COLORS = {
   error_state: '#FF4D4F',
   stopped: '#8C8C8C',
   drilling: '#3b82f6',
+  marking: '#df2ab5ff',
   off: '#94a3b8',
   wait: '#f97316'
 };
@@ -186,15 +186,16 @@ const BinaryIndicator = ({ label, isActive }) => (
   </div>
 );
 
+// Real-time Dashboard with 10s refresh and scroll preservation
 const RealtimeDashboard = ({ machineId }) => {
   const [realtimeData, setRealtimeData] = useState(null);
   const [oeeData, setOeeData] = useState(null);
   const [timelineData, setTimelineData] = useState(null);
   const [historicalChartData, setHistoricalChartData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(new Date());
-
   const scrollPositionRef = useRef(0);
   const currentMachineRef = useRef(machineId);
+  
 
   useEffect(() => {
     currentMachineRef.current = machineId;
@@ -202,22 +203,25 @@ const RealtimeDashboard = ({ machineId }) => {
 
   useEffect(() => {
     if (!machineId) return;
-
+    
     const loadData = async () => {
+      // Don't update if machine changed
       if (currentMachineRef.current !== machineId) return;
-
+      
+      // Save scroll position
       scrollPositionRef.current = window.scrollY;
-
+      
       try {
         const [realtime, oee, timeline, historical] = await Promise.all([
           fetchAPI(`/machines/${machineId}/realtime`),
           fetchAPI(`/machines/${machineId}/oee?range=24h`),
           fetchAPI(`/machines/${machineId}/timeline?range=24h`),
-          fetchAPI(`/machines/${machineId}/historical?range=1h`),
+          fetchAPI(`/machines/${machineId}/historical?range=1h`)
         ]);
-
+        
+        // Only update if still on same machine
         if (currentMachineRef.current !== machineId) return;
-
+        
         setRealtimeData(realtime.data);
         setOeeData(oee);
         setTimelineData(timeline.timeline);
@@ -247,6 +251,7 @@ const RealtimeDashboard = ({ machineId }) => {
     };
 
     loadData();
+    // Refresh every 10 seconds
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, [machineId]);
@@ -254,8 +259,8 @@ const RealtimeDashboard = ({ machineId }) => {
   if (!realtimeData)
     return <div style={{ padding: "40px", textAlign: "center" }}>No data available</div>;
 
-  const isRunning = realtimeData.state === "Running";
-  const isProgramActive = realtimeData.program_state === "ACTIVE";
+  const isRunning = realtimeData.state === 'Running';
+  const isProgramActive = realtimeData.program_state === 'ACTIVE';
   const isDrilling = realtimeData.drilling > 0;
   const isMarking = realtimeData.current > 0;
 
@@ -277,43 +282,19 @@ const RealtimeDashboard = ({ machineId }) => {
           🔄 Auto-refresh: 10s | Last update: {lastUpdate.toLocaleTimeString()}
         </div>
       </div>
-
+      
       {/* Binary Indicators */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         <BinaryIndicator label="Machine State" isActive={isRunning} />
         <BinaryIndicator label="Program State" isActive={isProgramActive} />
         <BinaryIndicator label="Marking" isActive={isMarking} />
         <BinaryIndicator label="Drilling" isActive={isDrilling} />
       </div>
 
-      {/* Gauges */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "24px",
-          marginBottom: "24px",
-        }}
-      >
-        <GaugeChart
-          value={(realtimeData.current / 150) * 100}
-          title={`Current: ${realtimeData.current.toFixed(2)} A`}
-          color={COLORS.primary}
-          icon={Zap}
-        />
-        <SpeedometerChart
-          value={realtimeData.cutting_speed}
-          maxValue={500}
-          icon={RocketIcon}
-          title="Cutting Speed"
-        />
+      {/* Current and Speed */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+        <GaugeChart value={(realtimeData.current / 150) * 100} title={`Current: ${realtimeData.current.toFixed(2)} A`} color={COLORS.primary} icon ={Zap}/>
+        <SpeedometerChart value={realtimeData.cutting_speed} maxValue={500} icon ={RocketIcon} title="Cutting Speed"/>
       </div>
 
       {/* OEE Gauges */}
@@ -479,6 +460,7 @@ const RealtimeDashboard = ({ machineId }) => {
     );
   })}
 </div>
+
         
       {/* Real-time Line Charts */}
       <div
@@ -565,6 +547,7 @@ const RealtimeDashboard = ({ machineId }) => {
     </div>
   );
 };
+
 
 // Historical Dashboard with Date Range Picker
 const HistoricalDashboard = ({ machineId }) => {
