@@ -344,7 +344,7 @@ def get_machine_oee(machine_id):
 # ============================================================
 @app.route('/api/machines/<machine_id>/timeline', methods=['GET'])
 def get_machine_timeline(machine_id):
-    """Get machine state timeline"""
+    """Get machine state timeline with mutually exclusive states"""
     try:
         time_range = request.args.get('range', '24h')
         start_time = parse_time_range(time_range)
@@ -358,6 +358,7 @@ def get_machine_timeline(machine_id):
             state,
             drilling,
             current,
+            cutting_speed,
             EXTRACT(EPOCH FROM (LEAD(time) OVER (ORDER BY time) - time)) as duration_seconds
         FROM machine_data
         WHERE machine_id = %s
@@ -371,50 +372,54 @@ def get_machine_timeline(machine_id):
         cur.close()
         conn.close()
         
-        # Process timeline data
         timeline = {
             'overview': [],
+            'Running': [],
             'Drilling': [],
             'Marking': [],
             'Idle': [],
-            'Running': [],
             'Error': [],
             'Stopped': []
         }
         
         for record in raw_data:
-            duration = record['duration_seconds'] or 0
-            state = record['state'] or 'Unknown'
+            duration = record['duration_seconds'] or 2
+            timestamp = record['time'].isoformat() if record['time'] else datetime.now().isoformat()
             
-            # Overview based on machine state
+            state = record['state'] or 'Unknown'
+            drilling_active = record['drilling'] and float(record['drilling']) > 0
+            marking_active = record['current'] and float(record['current']) > 0
+            
+            # ✅ PRIORITY LOGIC: Most specific state wins
+            if state == 'Running':
+                if drilling_active:
+                    primary_state = 'Drilling'
+                elif marking_active:
+                    primary_state = 'Marking'
+                else:
+                    primary_state = 'Running'
+            elif state == 'Error':
+                primary_state = 'Error'
+            elif state == 'Stopped':
+                primary_state = 'Stopped'
+            elif state == 'Idle':
+                primary_state = 'Idle'
+            else:
+                primary_state = state
+            
+            # Overview shows primary state
             timeline['overview'].append({
-                'status': state,
-                'duration': duration,
-                'timestamp': record['time'].isoformat()
+                'status': primary_state,
+                'duration': float(duration),
+                'timestamp': timestamp
             })
             
-            # Drilling status
-            if record['drilling'] and record['drilling'] > 0:
-                timeline['Drilling'].append({
-                    'status': 'Drilling',
-                    'duration': duration,
-                    'timestamp': record['time'].isoformat()
-                })
-            
-            # Marking status (current > 0)
-            if record['current'] and record['current'] > 0:
-                timeline['Marking'].append({
-                    'status': 'Marking',
-                    'duration': duration,
-                    'timestamp': record['time'].isoformat()
-                })
-            
-            # State-specific timelines
-            if state in timeline:
-                timeline[state].append({
-                    'status': state,
-                    'duration': duration,
-                    'timestamp': record['time'].isoformat()
+            # ONLY add to matching timeline
+            if primary_state in timeline:
+                timeline[primary_state].append({
+                    'status': primary_state,
+                    'duration': float(duration),
+                    'timestamp': timestamp
                 })
         
         return jsonify({
@@ -428,7 +433,16 @@ def get_machine_timeline(machine_id):
         traceback.print_exc()
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'timeline': {
+                'overview': [],
+                'Running': [],
+                'Drilling': [],
+                'Marking': [],
+                'Idle': [],
+                'Error': [],
+                'Stopped': []
+            }
         }), 500
 
 # ============================================================
@@ -444,14 +458,22 @@ def get_status_summary(machine_id):
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
+        # Fixed: Removed GROUP BY from window function query
         query = """
+        WITH durations AS (
+            SELECT 
+                state,
+                EXTRACT(EPOCH FROM (LEAD(time) OVER (ORDER BY time) - time)) as duration_seconds
+            FROM machine_data
+            WHERE machine_id = %s
+            AND time >= %s
+        )
         SELECT 
             state,
             COUNT(*) as count,
-            SUM(EXTRACT(EPOCH FROM (LEAD(time) OVER (ORDER BY time) - time))) as total_duration
-        FROM machine_data
-        WHERE machine_id = %s
-        AND time >= %s
+            COALESCE(SUM(duration_seconds), 0) as total_duration
+        FROM durations
+        WHERE state IS NOT NULL
         GROUP BY state;
         """
         
@@ -463,7 +485,7 @@ def get_status_summary(machine_id):
         
         summary = {}
         for row in results:
-            summary[row['state']] = row['total_duration'] or 0
+            summary[row['state']] = float(row['total_duration']) if row['total_duration'] else 0.0
         
         return jsonify({
             'success': True,
@@ -473,6 +495,7 @@ def get_status_summary(machine_id):
         
     except Exception as e:
         print(f"Error in get_status_summary: {e}")
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
